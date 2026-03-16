@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    font-size: 13px;
+    color: #1a1a1a;
+    background: #fff;
+    padding: 16px;
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  h2 { font-size: 15px; font-weight: 600; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+
+  .component-card {
+    background: #f5f5f5;
+    border-radius: 8px;
+    padding: 12px;
+    display: none;
+    gap: 8px;
+    flex-direction: column;
+  }
+  .component-card.visible { display: flex; }
+
+  .component-name {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .props-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .pill {
+    background: #e0e0e0;
+    border-radius: 100px;
+    padding: 2px 10px;
+    font-size: 11px;
+    color: #444;
+  }
+  .pill.bool { background: #e8f0fe; color: #1a56db; }
+
+  .field-group { display: flex; flex-direction: column; gap: 6px; }
+
+  label { font-size: 12px; color: #555; }
+
+  input[type="text"], input[type="password"], textarea {
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+    resize: vertical;
+  }
+  input:focus, textarea:focus { border-color: #7c5cfc; }
+
+  .key-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .key-row input { flex: 1; }
+  .key-row button {
+    flex-shrink: 0;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  .language-toggle {
+    display: flex;
+    gap: 4px;
+  }
+  .lang-btn {
+    border: 1px solid #ddd;
+    background: #f5f5f5;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .lang-btn.active {
+    background: #1a1a1a;
+    color: #fff;
+    border-color: #1a1a1a;
+  }
+
+  .actions { display: flex; gap: 8px; margin-top: auto; }
+
+  button.secondary {
+    flex: 1;
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  button.secondary:hover { background: #e5e5e5; }
+
+  button.primary {
+    flex: 2;
+    background: #7c5cfc;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  button.primary:hover { background: #6847e8; }
+  button.primary:disabled { background: #bbb; cursor: not-allowed; }
+
+  .status {
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    display: none;
+  }
+  .status.info { display: block; background: #eef2ff; color: #3730a3; }
+  .status.error { display: block; background: #fef2f2; color: #dc2626; }
+  .status.success { display: block; background: #f0fdf4; color: #16a34a; }
+
+  .spinner {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    display: none;
+  }
+  .spinner.visible { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .step { display: none; flex-direction: column; gap: 14px; flex: 1; }
+  .step.active { display: flex; }
+
+  .back-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0;
+    text-align: left;
+  }
+  .back-btn:hover { color: #333; }
+</style>
+</head>
+<body>
+
+<!-- ── STEP 1: Select component ───────────────────────────────────────── -->
+<div class="step active" id="step1">
+  <h2>Readme Generator</h2>
+
+  <div class="field-group">
+    <div class="section-label">Компонент</div>
+    <div class="component-card" id="comp-card">
+      <div class="component-name" id="comp-name">—</div>
+      <div>
+        <div class="section-label" style="margin-bottom:4px">Variants</div>
+        <div class="props-row" id="comp-variants"></div>
+      </div>
+      <div>
+        <div class="section-label" style="margin-bottom:4px">Booleans</div>
+        <div class="props-row" id="comp-bools"></div>
+      </div>
+    </div>
+    <button class="secondary" id="btn-read">Прочитать выбранный компонент</button>
+  </div>
+
+  <div class="field-group">
+    <div class="section-label">Claude API Key</div>
+    <div class="key-row">
+      <input type="password" id="api-key" placeholder="sk-ant-..." />
+      <button id="btn-save-key">Сохранить</button>
+    </div>
+  </div>
+
+  <div class="field-group">
+    <div class="section-label">Язык описаний</div>
+    <div class="language-toggle">
+      <button class="lang-btn active" data-lang="ru">RU</button>
+      <button class="lang-btn" data-lang="en">EN</button>
+    </div>
+  </div>
+
+  <div class="field-group">
+    <div class="section-label">Дополнительный контекст (опционально)</div>
+    <textarea id="extra-context" rows="3" placeholder="Например: это компонент для финтех-приложения, используется в формах ввода платёжных данных…"></textarea>
+  </div>
+
+  <div class="status" id="status1"></div>
+
+  <div class="actions">
+    <button class="secondary" id="btn-close">Закрыть</button>
+    <button class="primary" id="btn-generate" disabled>
+      <span class="spinner" id="spinner1"></span>
+      Сгенерировать readme
+    </button>
+  </div>
+</div>
+
+<!-- ── STEP 2: Done ───────────────────────────────────────────────────── -->
+<div class="step" id="step2">
+  <h2>Готово ✓</h2>
+  <div class="status success" id="done-msg" style="display:block">
+    Readme фрейм создан рядом с компонентом на канвасе.
+  </div>
+  <div class="actions" style="margin-top:0">
+    <button class="secondary" id="btn-again">Сделать ещё</button>
+    <button class="primary" id="btn-close2">Закрыть</button>
+  </div>
+</div>
+
+<script>
+  // ── state ────────────────────────────────────────────────────────────────
+  let componentData = null;
+  let selectedLang = "ru";
+
+  // ── helpers ──────────────────────────────────────────────────────────────
+  function showStatus(id, type, msg) {
+    const el = document.getElementById(id);
+    el.className = "status " + type;
+    el.textContent = msg;
+  }
+
+  function setStep(n) {
+    document.querySelectorAll(".step").forEach(function(s) { s.classList.remove("active"); });
+    document.getElementById("step" + n).classList.add("active");
+  }
+
+  // Restore saved key
+  var _savedKey = "";
+
+  // ── language toggle ──────────────────────────────────────────────────────
+  document.querySelectorAll(".lang-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      document.querySelectorAll(".lang-btn").forEach(function(b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      selectedLang = btn.dataset.lang;
+    });
+  });
+
+  // ── save key ─────────────────────────────────────────────────────────────
+  document.getElementById("btn-save-key").addEventListener("click", function() {
+    const key = document.getElementById("api-key").value.trim();
+    if (key) {
+      _savedKey = key;
+      parent.postMessage({ pluginMessage: { type: "SAVE_KEY", key: key } }, "*");
+    }
+  });
+
+  // ── read component ────────────────────────────────────────────────────────
+  document.getElementById("btn-read").addEventListener("click", function() {
+    parent.postMessage({ pluginMessage: { type: "GET_COMPONENT" } }, "*");
+  });
+
+  // ── generate ─────────────────────────────────────────────────────────────
+  document.getElementById("btn-generate").addEventListener("click", async function() {
+    if (!componentData) return;
+    const apiKey = document.getElementById("api-key").value.trim();
+    if (!apiKey) { showStatus("status1", "error", "Введи Claude API Key"); return; }
+
+    const btn = document.getElementById("btn-generate");
+    const spinner = document.getElementById("spinner1");
+    btn.disabled = true;
+    spinner.classList.add("visible");
+    showStatus("status1", "info", "Генерирую описания через Claude API…");
+
+    try {
+      const descriptions = await generateDescriptions(apiKey, componentData, selectedLang);
+      parent.postMessage({ pluginMessage: { type: "BUILD_README", descriptions } }, "*");
+    } catch (e) {
+      btn.disabled = false;
+      spinner.classList.remove("visible");
+      showStatus("status1", "error", "Ошибка Claude API: " + e.message);
+    }
+  });
+
+  // ── claude api call ───────────────────────────────────────────────────────
+  async function generateDescriptions(apiKey, data, lang) {
+    var langNote = lang === "ru"
+      ? "Write all descriptions in Russian."
+      : "Write all descriptions in English.";
+
+    var extraCtx = document.getElementById("extra-context").value.trim();
+
+    var variantLines = [];
+    for (var vk in data.variants) {
+      variantLines.push("- " + vk + ": " + data.variants[vk].join(", "));
+    }
+
+    var boolLines = data.booleans.map(function(b) { return "- " + b + ": True / False"; });
+
+    var stateEntries = data.variants["State"]
+      ? data.variants["State"].map(function(s) { return '"' + s + '": "Short description (1-2 sentences)."'; }).join(",\n    ")
+      : "";
+    var valueEntries = data.variants["Value"]
+      ? data.variants["Value"].map(function(v) { return '"' + v + '": "Short description."'; }).join(",\n    ")
+      : "";
+    var trailingEntries = data.variants["Trailing"]
+      ? data.variants["Trailing"].map(function(t) { return '"' + t + '": "Short description."'; }).join(",\n    ")
+      : "";
+    var boolEntries = data.booleans.map(function(b) {
+      return '"' + b + '": { "true": "What is shown.", "false": "What is hidden." }';
+    }).join(",\n    ");
+
+    var userPrompt = "You are writing component documentation for a design system.\n\n"
+      + "Component name: " + data.name + "\n"
+      + (extraCtx ? "Context: " + extraCtx + "\n" : "")
+      + "\nVariant properties:\n" + variantLines.join("\n")
+      + "\n\nBoolean properties:\n" + boolLines.join("\n")
+      + "\n\n" + langNote
+      + "\n\nReturn ONLY valid JSON (no markdown, no extra text):\n"
+      + '{\n'
+      + '  "componentDescription": "One sentence.",\n'
+      + '  "states": {\n    ' + stateEntries + '\n  },\n'
+      + '  "values": {\n    ' + valueEntries + '\n  },\n'
+      + '  "trailing": {\n    ' + trailingEntries + '\n  },\n'
+      + '  "booleans": {\n    ' + boolEntries + '\n  }\n'
+      + '}';
+
+    var resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 2000,
+        messages: [{ role: "user", content: userPrompt }],
+      }),
+    });
+
+    if (!resp.ok) {
+      var errData = {};
+      try { errData = await resp.json(); } catch(e) {}
+      var errMsg = (errData.error && errData.error.message) ? errData.error.message : ("HTTP " + resp.status);
+      throw new Error(errMsg);
+    }
+
+    var json = await resp.json();
+    var text = (json.content && json.content[0] && json.content[0].text) ? json.content[0].text : "";
+    var clean = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    try {
+      return JSON.parse(clean);
+    } catch(e) {
+      throw new Error("Не удалось распарсить JSON от Claude. Ответ: " + clean.slice(0, 200));
+    }
+  }
+
+  // ── messages from plugin ──────────────────────────────────────────────────
+  window.onmessage = function(event) {
+    const msg = event.data.pluginMessage;
+    if (!msg) return;
+
+    if (msg.type === "SAVED_KEY") {
+      document.getElementById("api-key").value = msg.key;
+      _savedKey = msg.key;
+      return;
+    }
+
+    if (msg.type === "KEY_SAVED") {
+      showStatus("status1", "info", "Ключ сохранён");
+      return;
+    }
+
+    if (msg.type === "COMPONENT_DATA") {
+      componentData = msg;
+      document.getElementById("comp-name").textContent = msg.name;
+
+      const varEl = document.getElementById("comp-variants");
+      varEl.innerHTML = "";
+      for (const [key, vals] of Object.entries(msg.variants)) {
+        const pill = document.createElement("span");
+        pill.className = "pill";
+        pill.textContent = key + ": " + vals.join(", ");
+        varEl.appendChild(pill);
+      }
+
+      const boolEl = document.getElementById("comp-bools");
+      boolEl.innerHTML = "";
+      for (const b of msg.booleans) {
+        const pill = document.createElement("span");
+        pill.className = "pill bool";
+        pill.textContent = b;
+        boolEl.appendChild(pill);
+      }
+
+      document.getElementById("comp-card").classList.add("visible");
+      document.getElementById("btn-generate").disabled = false;
+      showStatus("status1", "info", "Компонент прочитан: " + msg.name);
+    }
+
+    if (msg.type === "DONE") {
+      setStep(2);
+    }
+
+    if (msg.type === "ERROR") {
+      const spinner = document.getElementById("spinner1");
+      const btn = document.getElementById("btn-generate");
+      spinner.classList.remove("visible");
+      btn.disabled = false;
+      showStatus("status1", "error", msg.message);
+    }
+  };
+
+  // ── misc buttons ──────────────────────────────────────────────────────────
+  document.getElementById("btn-close").addEventListener("click", function() {
+    parent.postMessage({ pluginMessage: { type: "CLOSE" } }, "*");
+  });
+  document.getElementById("btn-close2").addEventListener("click", function() {
+    parent.postMessage({ pluginMessage: { type: "CLOSE" } }, "*");
+  });
+  document.getElementById("btn-again").addEventListener("click", function() {
+    componentData = null;
+    document.getElementById("comp-card").classList.remove("visible");
+    document.getElementById("btn-generate").disabled = true;
+    showStatus("status1", "", "");
+    document.getElementById("status1").className = "status";
+    setStep(1);
+  });
+</script>
+</body>
+</html>
