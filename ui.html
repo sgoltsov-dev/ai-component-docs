@@ -169,17 +169,6 @@
   .step { display: none; flex-direction: column; gap: 14px; flex: 1; }
   .step.active { display: flex; }
 
-  .back-btn {
-    background: none;
-    border: none;
-    color: #888;
-    font-size: 12px;
-    cursor: pointer;
-    padding: 0;
-    text-align: left;
-  }
-  .back-btn:hover { color: #333; }
-
   /* ── Accordion ─────────────────────────────────────────────────────── */
   .accordion-header {
     display: flex;
@@ -232,18 +221,6 @@
     width: 96px;
     flex-shrink: 0;
   }
-  .token-select {
-    flex: 1;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 4px 6px;
-    font-size: 11px;
-    font-family: inherit;
-    outline: none;
-    background: #fff;
-    color: #333;
-  }
-  .token-select:focus { border-color: #7c5cfc; }
 
   .theme-status {
     font-size: 11px;
@@ -271,6 +248,94 @@
     letter-spacing: 0.05em;
     margin-top: 4px;
   }
+
+  /* ── Autocomplete ──────────────────────────────────────────────────── */
+  .ac-wrap { position: relative; flex: 1; }
+
+  .ac-input {
+    width: 100%;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 4px 22px 4px 6px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+    outline: none;
+    color: #333;
+    background: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 6px center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ac-input:focus { border-color: #7c5cfc; }
+  .ac-input.has-value { color: #1a1a1a; }
+
+  .ac-dropdown {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    right: 0;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+    z-index: 200;
+    display: none;
+    flex-direction: column;
+    min-width: 160px;
+  }
+  .ac-dropdown.open { display: flex; }
+
+  .ac-search {
+    border: none;
+    border-bottom: 1px solid #eee;
+    padding: 6px 8px;
+    font-size: 11px;
+    font-family: inherit;
+    outline: none;
+    border-radius: 6px 6px 0 0;
+    color: #1a1a1a;
+  }
+
+  .ac-list { overflow-y: auto; max-height: 150px; }
+
+  .ac-option {
+    padding: 5px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ac-option:hover { background: #f0edff; }
+  .ac-option.selected { color: #7c5cfc; font-weight: 500; }
+
+  .ac-empty {
+    padding: 8px;
+    font-size: 11px;
+    color: #aaa;
+    text-align: center;
+  }
+
+  .ac-clear {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    cursor: pointer;
+    color: #bbb;
+    font-size: 13px;
+    line-height: 12px;
+    display: none;
+    text-align: center;
+  }
+  .ac-wrap.has-value .ac-clear { display: block; }
 </style>
 </head>
 <body>
@@ -280,7 +345,7 @@
   <h2>Readme Generator</h2>
 
   <div class="field-group">
-    <div class="section-label">Компонент</div>
+    <div class="section-label">Component</div>
     <div class="component-card" id="comp-card">
       <div class="component-name" id="comp-name">—</div>
       <div>
@@ -292,19 +357,19 @@
         <div class="props-row" id="comp-bools"></div>
       </div>
     </div>
-    <button class="secondary" id="btn-read">Прочитать выбранный компонент</button>
+    <button class="secondary" id="btn-read">Read selected component</button>
   </div>
 
   <div class="field-group" id="claude-fields">
     <div class="section-label">Claude API Key</div>
     <div class="key-row">
       <input type="password" id="api-key" placeholder="sk-ant-..." />
-      <button id="btn-save-key">Сохранить</button>
+      <button id="btn-save-key">Save</button>
     </div>
   </div>
 
   <div class="field-group">
-    <div class="section-label">Провайдер генерации</div>
+    <div class="section-label">Provider</div>
     <div class="props-row" style="gap:8px">
       <label style="display:flex;align-items:center;gap:6px">
         <input type="radio" name="provider" value="claude" checked />
@@ -338,7 +403,7 @@
   </div>
 
   <div class="field-group">
-    <div class="section-label">Язык описаний</div>
+    <div class="section-label">Description language</div>
     <div class="language-toggle">
       <button class="lang-btn active" data-lang="ru">RU</button>
       <button class="lang-btn" data-lang="en">EN</button>
@@ -346,8 +411,8 @@
   </div>
 
   <div class="field-group">
-    <div class="section-label">Дополнительный контекст (опционально)</div>
-    <textarea id="extra-context" rows="3" placeholder="Например: это компонент для финтех-приложения, используется в формах ввода платёжных данных…"></textarea>
+    <div class="section-label">Extra context (optional)</div>
+    <textarea id="extra-context" rows="3" placeholder="e.g. this is a fintech app component used in payment input forms…"></textarea>
   </div>
 
   <!-- ── Manual sections ────────────────────────────────────────────── -->
@@ -359,19 +424,19 @@
     <div class="accordion-body" id="manual-body">
       <label class="checkbox-row">
         <input type="checkbox" name="manual-section" value="Usage" checked />
-        Usage — когда/когда не использовать
+        Usage — when / when not to use
       </label>
       <label class="checkbox-row">
         <input type="checkbox" name="manual-section" value="Mechanics" checked />
-        Mechanics — поведение, анимации, взаимодействие
+        Mechanics — behavior, animation, transitions
       </label>
       <label class="checkbox-row">
         <input type="checkbox" name="manual-section" value="Edge Cases" checked />
-        Edge Cases — граничные условия и нестандартные сценарии
+        Edge Cases — boundary conditions, unusual states
       </label>
       <label class="checkbox-row">
         <input type="checkbox" name="manual-section" value="Accessibility" checked />
-        Accessibility — ARIA, клавиатура, скринридеры
+        Accessibility — ARIA, keyboard, screen readers
       </label>
     </div>
   </div>
@@ -392,38 +457,94 @@
 
       <div class="token-row">
         <span class="token-label">Background</span>
-        <select id="theme-color-background" class="token-select"><option value="">— default —</option></select>
+        <div class="ac-wrap" id="theme-color-background">
+          <input class="ac-input" type="text" placeholder="— default —" readonly />
+          <span class="ac-clear" title="Clear">×</span>
+          <div class="ac-dropdown">
+            <input class="ac-search" type="text" placeholder="Search…" />
+            <div class="ac-list"></div>
+          </div>
+        </div>
       </div>
       <div class="token-row">
         <span class="token-label">Text primary</span>
-        <select id="theme-color-textPrimary" class="token-select"><option value="">— default —</option></select>
+        <div class="ac-wrap" id="theme-color-textPrimary">
+          <input class="ac-input" type="text" placeholder="— default —" readonly />
+          <span class="ac-clear" title="Clear">×</span>
+          <div class="ac-dropdown">
+            <input class="ac-search" type="text" placeholder="Search…" />
+            <div class="ac-list"></div>
+          </div>
+        </div>
       </div>
       <div class="token-row">
         <span class="token-label">Text secondary</span>
-        <select id="theme-color-textSecondary" class="token-select"><option value="">— default —</option></select>
+        <div class="ac-wrap" id="theme-color-textSecondary">
+          <input class="ac-input" type="text" placeholder="— default —" readonly />
+          <span class="ac-clear" title="Clear">×</span>
+          <div class="ac-dropdown">
+            <input class="ac-search" type="text" placeholder="Search…" />
+            <div class="ac-list"></div>
+          </div>
+        </div>
       </div>
       <div class="token-row">
         <span class="token-label">Divider</span>
-        <select id="theme-color-divider" class="token-select"><option value="">— default —</option></select>
+        <div class="ac-wrap" id="theme-color-divider">
+          <input class="ac-input" type="text" placeholder="— default —" readonly />
+          <span class="ac-clear" title="Clear">×</span>
+          <div class="ac-dropdown">
+            <input class="ac-search" type="text" placeholder="Search…" />
+            <div class="ac-list"></div>
+          </div>
+        </div>
       </div>
 
       <div class="token-group-label" style="margin-top:4px">Text styles</div>
 
       <div class="token-row">
         <span class="token-label">Title</span>
-        <select id="theme-style-title" class="token-select"><option value="">— default —</option></select>
+        <div class="ac-wrap" id="theme-style-title">
+          <input class="ac-input" type="text" placeholder="— default —" readonly />
+          <span class="ac-clear" title="Clear">×</span>
+          <div class="ac-dropdown">
+            <input class="ac-search" type="text" placeholder="Search…" />
+            <div class="ac-list"></div>
+          </div>
+        </div>
       </div>
       <div class="token-row">
         <span class="token-label">Heading</span>
-        <select id="theme-style-sectionHeading" class="token-select"><option value="">— default —</option></select>
+        <div class="ac-wrap" id="theme-style-sectionHeading">
+          <input class="ac-input" type="text" placeholder="— default —" readonly />
+          <span class="ac-clear" title="Clear">×</span>
+          <div class="ac-dropdown">
+            <input class="ac-search" type="text" placeholder="Search…" />
+            <div class="ac-list"></div>
+          </div>
+        </div>
       </div>
       <div class="token-row">
         <span class="token-label">Body</span>
-        <select id="theme-style-body" class="token-select"><option value="">— default —</option></select>
+        <div class="ac-wrap" id="theme-style-body">
+          <input class="ac-input" type="text" placeholder="— default —" readonly />
+          <span class="ac-clear" title="Clear">×</span>
+          <div class="ac-dropdown">
+            <input class="ac-search" type="text" placeholder="Search…" />
+            <div class="ac-list"></div>
+          </div>
+        </div>
       </div>
       <div class="token-row">
         <span class="token-label">Label</span>
-        <select id="theme-style-label" class="token-select"><option value="">— default —</option></select>
+        <div class="ac-wrap" id="theme-style-label">
+          <input class="ac-input" type="text" placeholder="— default —" readonly />
+          <span class="ac-clear" title="Clear">×</span>
+          <div class="ac-dropdown">
+            <input class="ac-search" type="text" placeholder="Search…" />
+            <div class="ac-list"></div>
+          </div>
+        </div>
       </div>
 
       <button class="btn-small" id="btn-clear-theme" style="margin-top:2px;align-self:flex-start">Clear theme</button>
@@ -433,23 +554,23 @@
   <div class="status" id="status1"></div>
 
   <div class="actions">
-    <button class="secondary" id="btn-close">Закрыть</button>
+    <button class="secondary" id="btn-close">Close</button>
     <button class="primary" id="btn-generate" disabled>
       <span class="spinner" id="spinner1"></span>
-      Сгенерировать readme
+      Generate
     </button>
   </div>
 </div>
 
 <!-- ── STEP 2: Done ───────────────────────────────────────────────────── -->
 <div class="step" id="step2">
-  <h2>Готово ✓</h2>
+  <h2>Done ✓</h2>
   <div class="status success" id="done-msg" style="display:block">
-    Readme фрейм создан рядом с компонентом на канвасе.
+    Readme frame created next to the component on canvas.
   </div>
   <div class="actions" style="margin-top:0">
-    <button class="secondary" id="btn-again">Сделать ещё</button>
-    <button class="primary" id="btn-close2">Закрыть</button>
+    <button class="secondary" id="btn-again">Generate another</button>
+    <button class="primary" id="btn-close2">Close</button>
   </div>
 </div>
 
@@ -465,6 +586,160 @@
   var _pendingCollections = 0;
   var _collectionNames = {};
 
+  // ── autocomplete factory ─────────────────────────────────────────────────
+  // Creates a searchable combobox inside an .ac-wrap element.
+  // Returns { getValue, setValue, refresh, clear, setSavedKey }
+  function makeAutocomplete(wrapId) {
+    var wrap = document.getElementById(wrapId);
+    var input = wrap.querySelector(".ac-input");
+    var clearBtn = wrap.querySelector(".ac-clear");
+    var dropdown = wrap.querySelector(".ac-dropdown");
+    var search = wrap.querySelector(".ac-search");
+    var list = wrap.querySelector(".ac-list");
+
+    var _items = [];       // [{key, name}]
+    var _savedKey = "";    // pending key to restore after refresh
+
+    function close() {
+      dropdown.classList.remove("open");
+      search.value = "";
+      renderList("");
+    }
+
+    function open() {
+      // Close all other open dropdowns
+      document.querySelectorAll(".ac-dropdown.open").forEach(function(d) {
+        if (d !== dropdown) {
+          d.classList.remove("open");
+          d.querySelector(".ac-search").value = "";
+        }
+      });
+      dropdown.classList.add("open");
+      search.focus();
+      renderList("");
+    }
+
+    function renderList(filter) {
+      list.innerHTML = "";
+      var lower = filter.toLowerCase();
+      var currentKey = wrap.dataset.value ? wrap.dataset.value : "";
+      var matched = 0;
+
+      for (var i = 0; i < _items.length; i++) {
+        var item = _items[i];
+        if (lower && item.name.toLowerCase().indexOf(lower) === -1) continue;
+        matched++;
+        var opt = document.createElement("div");
+        opt.className = "ac-option" + (item.key === currentKey ? " selected" : "");
+        opt.textContent = item.name;
+        opt.dataset.key = item.key;
+        opt.dataset.name = item.name;
+        opt.addEventListener("mousedown", function(e) {
+          e.preventDefault();
+          select(this.dataset.key, this.dataset.name);
+        });
+        list.appendChild(opt);
+      }
+
+      if (!matched) {
+        var empty = document.createElement("div");
+        empty.className = "ac-empty";
+        empty.textContent = _items.length ? "No matches" : "Load from file first";
+        list.appendChild(empty);
+      }
+    }
+
+    function select(key, name) {
+      wrap.dataset.value = key;
+      input.value = name;
+      input.classList.add("has-value");
+      wrap.classList.add("has-value");
+      close();
+      saveFullConfig();
+    }
+
+    function clear() {
+      wrap.dataset.value = "";
+      input.value = "";
+      input.classList.remove("has-value");
+      wrap.classList.remove("has-value");
+    }
+
+    // Wire up events
+    input.addEventListener("click", function() {
+      if (dropdown.classList.contains("open")) {
+        close();
+      } else {
+        open();
+      }
+    });
+
+    clearBtn.addEventListener("mousedown", function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      clear();
+      saveFullConfig();
+    });
+
+    search.addEventListener("input", function() {
+      renderList(this.value);
+    });
+
+    search.addEventListener("keydown", function(e) {
+      if (e.key === "Escape") close();
+    });
+
+    document.addEventListener("mousedown", function(e) {
+      if (!wrap.contains(e.target)) close();
+    });
+
+    return {
+      getValue: function() {
+        return wrap.dataset.value ? wrap.dataset.value : "";
+      },
+      setValue: function(key, name) {
+        if (key) {
+          select(key, name);
+        } else {
+          clear();
+        }
+      },
+      // Re-populate the list. If a saved key exists, restores the selection.
+      refresh: function(items) {
+        _items = items || [];
+        var keyToRestore = _savedKey ? _savedKey : wrap.dataset.value;
+        if (keyToRestore) {
+          for (var i = 0; i < _items.length; i++) {
+            if (_items[i].key === keyToRestore) {
+              select(_items[i].key, _items[i].name);
+              _savedKey = "";
+              return;
+            }
+          }
+        }
+        renderList("");
+      },
+      // Store a key to be restored once refresh() is called with matching data
+      setSavedKey: function(key) {
+        _savedKey = key;
+      },
+      clear: clear
+    };
+  }
+
+  // ── instantiate autocompletes ────────────────────────────────────────────
+  var acColorBackground     = makeAutocomplete("theme-color-background");
+  var acColorTextPrimary    = makeAutocomplete("theme-color-textPrimary");
+  var acColorTextSecondary  = makeAutocomplete("theme-color-textSecondary");
+  var acColorDivider        = makeAutocomplete("theme-color-divider");
+  var acStyleTitle          = makeAutocomplete("theme-style-title");
+  var acStyleSectionHeading = makeAutocomplete("theme-style-sectionHeading");
+  var acStyleBody           = makeAutocomplete("theme-style-body");
+  var acStyleLabel          = makeAutocomplete("theme-style-label");
+
+  var colorAcs = [acColorBackground, acColorTextPrimary, acColorTextSecondary, acColorDivider];
+  var styleAcs = [acStyleTitle, acStyleSectionHeading, acStyleBody, acStyleLabel];
+
   // ── helpers ──────────────────────────────────────────────────────────────
   function showStatus(id, type, msg) {
     var el = document.getElementById(id);
@@ -477,7 +752,7 @@
     document.getElementById("step" + n).classList.add("active");
   }
 
-  var _savedKey = "";
+  var _savedApiKey = "";
   var _savedConfig = null;
 
   function getProvider() {
@@ -507,10 +782,7 @@
     return cfg;
   }
 
-  // Alias kept for internal use
-  function readConfigFromUI() {
-    return readProviderConfig();
-  }
+  function readConfigFromUI() { return readProviderConfig(); }
 
   // ── manual sections ──────────────────────────────────────────────────────
   function getManualSections() {
@@ -525,9 +797,7 @@
   function applyManualSectionsToUI(sections) {
     if (!sections) return;
     var all = document.querySelectorAll('input[name="manual-section"]');
-    for (var i = 0; i < all.length; i++) {
-      all[i].checked = false;
-    }
+    for (var i = 0; i < all.length; i++) all[i].checked = false;
     for (var j = 0; j < sections.length; j++) {
       var cb = document.querySelector('input[name="manual-section"][value="' + sections[j] + '"]');
       if (cb) cb.checked = true;
@@ -536,53 +806,43 @@
 
   // ── theme config ─────────────────────────────────────────────────────────
   function getThemeConfigFromUI() {
-    var config = { colors: {}, textStyles: {} };
-    var colorTokens = ["background", "textPrimary", "textSecondary", "divider"];
-    for (var i = 0; i < colorTokens.length; i++) {
-      var token = colorTokens[i];
-      var sel = document.getElementById("theme-color-" + token);
-      if (sel && sel.value) config.colors[token] = sel.value;
-    }
-    var styleTokens = ["title", "sectionHeading", "body", "label"];
-    for (var j = 0; j < styleTokens.length; j++) {
-      var st = styleTokens[j];
-      var sel2 = document.getElementById("theme-style-" + st);
-      if (sel2 && sel2.value) config.textStyles[st] = sel2.value;
-    }
-    return config;
+    return {
+      colors: {
+        background:    acColorBackground.getValue(),
+        textPrimary:   acColorTextPrimary.getValue(),
+        textSecondary: acColorTextSecondary.getValue(),
+        divider:       acColorDivider.getValue()
+      },
+      textStyles: {
+        title:          acStyleTitle.getValue(),
+        sectionHeading: acStyleSectionHeading.getValue(),
+        body:           acStyleBody.getValue(),
+        label:          acStyleLabel.getValue()
+      }
+    };
   }
 
   function applyThemeConfigToUI(themeConfig) {
     if (!themeConfig) return;
     var colors = themeConfig.colors ? themeConfig.colors : {};
-    var colorTokens = ["background", "textPrimary", "textSecondary", "divider"];
-    for (var i = 0; i < colorTokens.length; i++) {
-      var token = colorTokens[i];
-      if (colors[token]) {
-        var sel = document.getElementById("theme-color-" + token);
-        if (sel) sel.dataset.savedValue = colors[token];
-      }
-    }
     var textStyles = themeConfig.textStyles ? themeConfig.textStyles : {};
-    var styleTokens = ["title", "sectionHeading", "body", "label"];
-    for (var j = 0; j < styleTokens.length; j++) {
-      var st = styleTokens[j];
-      if (textStyles[st]) {
-        var sel2 = document.getElementById("theme-style-" + st);
-        if (sel2) sel2.dataset.savedValue = textStyles[st];
-      }
-    }
+
+    if (colors.background)    acColorBackground.setSavedKey(colors.background);
+    if (colors.textPrimary)   acColorTextPrimary.setSavedKey(colors.textPrimary);
+    if (colors.textSecondary) acColorTextSecondary.setSavedKey(colors.textSecondary);
+    if (colors.divider)       acColorDivider.setSavedKey(colors.divider);
+
+    if (textStyles.title)          acStyleTitle.setSavedKey(textStyles.title);
+    if (textStyles.sectionHeading) acStyleSectionHeading.setSavedKey(textStyles.sectionHeading);
+    if (textStyles.body)           acStyleBody.setSavedKey(textStyles.body);
+    if (textStyles.label)          acStyleLabel.setSavedKey(textStyles.label);
   }
 
   function clearThemeUI() {
-    var selects = document.querySelectorAll(".token-select");
-    for (var i = 0; i < selects.length; i++) {
-      selects[i].value = "";
-      selects[i].dataset.savedValue = "";
-    }
+    colorAcs.concat(styleAcs).forEach(function(ac) { ac.clear(); });
   }
 
-  // ── full config save/load ────────────────────────────────────────────────
+  // ── full config ──────────────────────────────────────────────────────────
   function buildFullConfig() {
     var cfg = readProviderConfig();
     cfg.manualSections = getManualSections();
@@ -608,74 +868,31 @@
     if (cfg.customModel) document.getElementById("custom-model").value = cfg.customModel;
     if (cfg.customToken) document.getElementById("custom-token").value = cfg.customToken;
 
-    // Restore manual sections
     if (cfg.manualSections) applyManualSectionsToUI(cfg.manualSections);
-
-    // Store saved theme values (applied lazily when options are loaded)
     if (cfg.themeConfig) applyThemeConfigToUI(cfg.themeConfig);
   }
 
   // ── theme options loading ────────────────────────────────────────────────
-  function populateColorSelects() {
-    var tokens = ["background", "textPrimary", "textSecondary", "divider"];
-    for (var i = 0; i < tokens.length; i++) {
-      var token = tokens[i];
-      var sel = document.getElementById("theme-color-" + token);
-      if (!sel) continue;
-      var savedValue = sel.dataset.savedValue ? sel.dataset.savedValue : "";
-      sel.innerHTML = '<option value="">— default —</option>';
-      for (var j = 0; j < _allColorVars.length; j++) {
-        var opt = document.createElement("option");
-        opt.value = _allColorVars[j].key;
-        opt.textContent = _allColorVars[j].name;
-        if (opt.value === savedValue) opt.selected = true;
-        sel.appendChild(opt);
-      }
-    }
-  }
-
-  function populateTextStyleSelects() {
-    var tokens = ["title", "sectionHeading", "body", "label"];
-    for (var i = 0; i < tokens.length; i++) {
-      var token = tokens[i];
-      var sel = document.getElementById("theme-style-" + token);
-      if (!sel) continue;
-      var savedValue = sel.dataset.savedValue ? sel.dataset.savedValue : "";
-      sel.innerHTML = '<option value="">— default —</option>';
-      for (var j = 0; j < _allTextStyles.length; j++) {
-        var opt = document.createElement("option");
-        opt.value = _allTextStyles[j].key;
-        opt.textContent = _allTextStyles[j].name;
-        if (opt.value === savedValue) opt.selected = true;
-        sel.appendChild(opt);
-      }
-    }
-  }
-
   function onThemeOptions(data) {
     _allColorVars = [];
     _allTextStyles = data.textStyles ? data.textStyles : [];
     _collectionNames = {};
 
-    // Populate text styles immediately
-    populateTextStyleSelects();
+    // Populate text style pickers immediately
+    styleAcs.forEach(function(ac) { ac.refresh(_allTextStyles); });
 
-    // Gather all collections to fetch variables from
     var allCollections = [];
     if (data.localCollections) {
-      for (var i = 0; i < data.localCollections.length; i++) {
-        allCollections.push(data.localCollections[i]);
-      }
+      for (var i = 0; i < data.localCollections.length; i++) allCollections.push(data.localCollections[i]);
     }
     if (data.libCollections) {
-      for (var j = 0; j < data.libCollections.length; j++) {
-        allCollections.push(data.libCollections[j]);
-      }
+      for (var j = 0; j < data.libCollections.length; j++) allCollections.push(data.libCollections[j]);
     }
 
     if (!allCollections.length) {
-      document.getElementById("theme-load-status").textContent = _allTextStyles.length + " text styles, no color variables found.";
-      populateColorSelects();
+      document.getElementById("theme-load-status").textContent =
+        _allTextStyles.length + " text styles, no color variables found.";
+      colorAcs.forEach(function(ac) { ac.refresh([]); });
       return;
     }
 
@@ -701,7 +918,7 @@
 
     _pendingCollections--;
     if (_pendingCollections <= 0) {
-      populateColorSelects();
+      colorAcs.forEach(function(ac) { ac.refresh(_allColorVars); });
       document.getElementById("theme-load-status").textContent =
         _allColorVars.length + " colors · " + _allTextStyles.length + " text styles";
     }
@@ -743,18 +960,9 @@
     saveFullConfig();
   });
 
-  // Save theme when selects change
-  document.querySelectorAll(".token-select").forEach(function(sel) {
-    sel.addEventListener("change", function() {
-      saveFullConfig();
-    });
-  });
-
-  // Save manual sections when checkboxes change
+  // ── manual sections change ───────────────────────────────────────────────
   document.querySelectorAll('input[name="manual-section"]').forEach(function(cb) {
-    cb.addEventListener("change", function() {
-      saveFullConfig();
-    });
+    cb.addEventListener("change", function() { saveFullConfig(); });
   });
 
   // ── provider toggles ─────────────────────────────────────────────────────
@@ -765,13 +973,10 @@
     });
   });
 
-  // Persist config when provider fields change
   ["openai-key", "openai-model", "custom-base-url", "custom-model", "custom-token"].forEach(function(id) {
     var el = document.getElementById(id);
     if (!el) return;
-    el.addEventListener("change", function() {
-      saveFullConfig();
-    });
+    el.addEventListener("change", function() { saveFullConfig(); });
   });
 
   // ── language toggle ──────────────────────────────────────────────────────
@@ -787,7 +992,7 @@
   document.getElementById("btn-save-key").addEventListener("click", function() {
     var key = document.getElementById("api-key").value.trim();
     if (key) {
-      _savedKey = key;
+      _savedApiKey = key;
       parent.postMessage({ pluginMessage: { type: "SAVE_KEY", key: key } }, "*");
     }
   });
@@ -806,22 +1011,21 @@
     var manualSections = getManualSections();
     var themeConf = getThemeConfigFromUI();
 
-    // Save full config on generate
     var fullCfg = Object.assign({}, cfg, { manualSections: manualSections, themeConfig: themeConf });
     parent.postMessage({ pluginMessage: { type: "SAVE_CONFIG", config: fullCfg } }, "*");
 
-    if (p === "claude" && !apiKey) { showStatus("status1", "error", "Введи Claude API Key"); return; }
-    if (p === "openai" && !cfg.openaiKey) { showStatus("status1", "error", "Введи OpenAI API Key"); return; }
+    if (p === "claude" && !apiKey) { showStatus("status1", "error", "Enter Claude API Key"); return; }
+    if (p === "openai" && !cfg.openaiKey) { showStatus("status1", "error", "Enter OpenAI API Key"); return; }
     if (p === "openai_compatible") {
-      if (!cfg.customBaseUrl) { showStatus("status1", "error", "Укажи Custom base URL"); return; }
-      if (!cfg.customModel) { showStatus("status1", "error", "Укажи model"); return; }
+      if (!cfg.customBaseUrl) { showStatus("status1", "error", "Specify Custom base URL"); return; }
+      if (!cfg.customModel) { showStatus("status1", "error", "Specify model"); return; }
     }
 
     var btn = document.getElementById("btn-generate");
     var spinner = document.getElementById("spinner1");
     btn.disabled = true;
     spinner.classList.add("visible");
-    showStatus("status1", "info", "Генерирую описания…");
+    showStatus("status1", "info", "Generating descriptions…");
 
     try {
       var descriptions = await generateDescriptions(p, apiKey, cfg, componentData, selectedLang);
@@ -834,14 +1038,13 @@
     } catch (e) {
       btn.disabled = false;
       spinner.classList.remove("visible");
-      showStatus("status1", "error", "Ошибка генерации: " + e.message);
+      showStatus("status1", "error", "Generation error: " + e.message);
     }
   });
 
   // ── LLM helpers ───────────────────────────────────────────────────────────
   function extractTextFromClaude(json) {
-    var text = (json && json.content && json.content[0] && json.content[0].text) ? json.content[0].text : "";
-    return text;
+    return (json && json.content && json.content[0] && json.content[0].text) ? json.content[0].text : "";
   }
 
   function extractTextFromOpenAI(json) {
@@ -876,12 +1079,10 @@
     if (!resp.ok) {
       var errData = {};
       try { errData = await resp.json(); } catch(e) {}
-      var errMsg = (errData.error && errData.error.message) ? errData.error.message : ("HTTP " + resp.status);
-      throw new Error(errMsg);
+      throw new Error((errData.error && errData.error.message) ? errData.error.message : ("HTTP " + resp.status));
     }
 
-    var json = await resp.json();
-    return extractTextFromClaude(json);
+    return extractTextFromClaude(await resp.json());
   }
 
   async function callOpenAIChatCompletions(baseUrl, apiKey, model, prompt) {
@@ -902,12 +1103,10 @@
     if (!resp.ok) {
       var errData = {};
       try { errData = await resp.json(); } catch(e) {}
-      var errMsg = (errData.error && errData.error.message) ? errData.error.message : ("HTTP " + resp.status);
-      throw new Error(errMsg);
+      throw new Error((errData.error && errData.error.message) ? errData.error.message : ("HTTP " + resp.status));
     }
 
-    var json = await resp.json();
-    return extractTextFromOpenAI(json);
+    return extractTextFromOpenAI(await resp.json());
   }
 
   async function generateDescriptions(prov, claudeKey, cfg, data, lang) {
@@ -933,9 +1132,7 @@
       }).join(",\n      ");
       variantTemplateBlocks.push('"' + propName + '": {\n      ' + entries + '\n    }');
     }
-    var variantsTemplate = variantTemplateBlocks.length
-      ? variantTemplateBlocks.join(",\n    ")
-      : "";
+    var variantsTemplate = variantTemplateBlocks.length ? variantTemplateBlocks.join(",\n    ") : "";
 
     var boolEntries = data.booleans.map(function(b) {
       return '"' + b + '": { "true": "What is shown.", "false": "What is hidden." }';
@@ -970,7 +1167,7 @@
     try {
       return JSON.parse(clean);
     } catch(e) {
-      throw new Error("Не удалось распарсить JSON. Ответ: " + clean.slice(0, 200));
+      throw new Error("Failed to parse JSON. Response: " + clean.slice(0, 200));
     }
   }
 
@@ -981,12 +1178,12 @@
 
     if (msg.type === "SAVED_KEY") {
       document.getElementById("api-key").value = msg.key;
-      _savedKey = msg.key;
+      _savedApiKey = msg.key;
       return;
     }
 
     if (msg.type === "KEY_SAVED") {
-      showStatus("status1", "info", "Ключ сохранён");
+      showStatus("status1", "info", "Key saved");
       return;
     }
 
@@ -995,9 +1192,7 @@
       return;
     }
 
-    if (msg.type === "CONFIG_SAVED") {
-      return;
-    }
+    if (msg.type === "CONFIG_SAVED") { return; }
 
     if (msg.type === "COMPONENT_DATA") {
       componentData = msg;
@@ -1024,7 +1219,7 @@
 
       document.getElementById("comp-card").classList.add("visible");
       document.getElementById("btn-generate").disabled = false;
-      showStatus("status1", "info", "Компонент прочитан: " + msg.name);
+      showStatus("status1", "info", "Component loaded: " + msg.name);
     }
 
     if (msg.type === "THEME_OPTIONS") {
@@ -1037,9 +1232,7 @@
       return;
     }
 
-    if (msg.type === "DONE") {
-      setStep(2);
-    }
+    if (msg.type === "DONE") { setStep(2); }
 
     if (msg.type === "ERROR") {
       var spinner = document.getElementById("spinner1");

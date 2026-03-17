@@ -373,6 +373,45 @@ async function buildReadme(cs, descriptions, manualSections, themeConfig) {
   figma.viewport.scrollAndZoomIntoView([readme]);
 }
 
+// ─── text style collector ───────────────────────────────────────────────────
+// Returns local text styles + any library styles used in nodes on the current page.
+// figma.getLocalTextStyles() only sees file-local styles; library styles only appear
+// when we look up the textStyleId on actual text nodes.
+function collectTextStyles() {
+  var styleMap = {};
+  var styles = [];
+
+  var localStyles = figma.getLocalTextStyles();
+  for (var i = 0; i < localStyles.length; i++) {
+    var s = localStyles[i];
+    if (!styleMap[s.key]) {
+      styleMap[s.key] = true;
+      styles.push({ key: s.key, name: s.name });
+    }
+  }
+
+  function walkNode(node) {
+    if (node.type === "TEXT") {
+      var sid = node.textStyleId;
+      if (sid && typeof sid === "string" && !styleMap[sid]) {
+        var style = figma.getStyleById(sid);
+        if (style && style.type === "TEXT" && style.key) {
+          styleMap[sid] = true;
+          styles.push({ key: style.key, name: style.name });
+        }
+      }
+    }
+    if (node.children) {
+      for (var j = 0; j < node.children.length; j++) {
+        walkNode(node.children[j]);
+      }
+    }
+  }
+
+  walkNode(figma.currentPage);
+  return styles;
+}
+
 // ─── message bus ────────────────────────────────────────────────────────────
 
 var CONFIG_KEY = "plugin_config";
@@ -428,35 +467,29 @@ figma.ui.onmessage = async function(msg) {
     }
   }
 
-  // Returns available variable collections (local + library) and local text styles
+  // Returns available variable collections (local + library) and text styles
   if (msg.type === "GET_THEME_OPTIONS") {
     try {
       figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync().then(function(libCollections) {
         const localCollections = figma.variables.getLocalVariableCollections();
-        const textStyles = figma.getLocalTextStyles();
         figma.ui.postMessage({
           type: "THEME_OPTIONS",
           libCollections: libCollections,
           localCollections: localCollections.map(function(c) {
             return { key: c.id, name: c.name, libraryName: "Local" };
           }),
-          textStyles: textStyles.map(function(s) {
-            return { key: s.key, name: s.name };
-          })
+          textStyles: collectTextStyles()
         });
       }).catch(function(e) {
         // teamlibrary not available (e.g. drafts) — return local only
         const localCollections = figma.variables.getLocalVariableCollections();
-        const textStyles = figma.getLocalTextStyles();
         figma.ui.postMessage({
           type: "THEME_OPTIONS",
           libCollections: [],
           localCollections: localCollections.map(function(c) {
             return { key: c.id, name: c.name, libraryName: "Local" };
           }),
-          textStyles: textStyles.map(function(s) {
-            return { key: s.key, name: s.name };
-          })
+          textStyles: collectTextStyles()
         });
       });
     } catch (e) {
