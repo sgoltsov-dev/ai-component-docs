@@ -199,31 +199,25 @@ async function buildReadme(cs, descriptions) {
   titleFrame.counterAxisSizingMode = "AUTO";
   readme.appendChild(titleFrame);
 
-  // ── States section ──────────────────────────────────────────────────────
-  if (variants["State"]) {
-    const stateCards = variants["State"].map(function(state) {
-      const desc = (descriptions.states && descriptions.states[state]) ? descriptions.states[state] : "Component description";
-      return makeCard(cs, state, desc, { State: state }, {});
-    });
-    readme.appendChild(makeSection("States", stateCards));
-  }
+  // ── Variant sections (dynamic) ──────────────────────────────────────────
+  // Expected schema:
+  // descriptions.variants = { [propName]: { [value]: description } }
+  var variantDescriptions = (descriptions && descriptions.variants) ? descriptions.variants : {};
 
-  // ── Value section ───────────────────────────────────────────────────────
-  if (variants["Value"]) {
-    const valueCards = variants["Value"].map(function(val) {
-      const desc = (descriptions.values && descriptions.values[val]) ? descriptions.values[val] : "Component description";
-      return makeCard(cs, val, desc, { Value: val }, {});
-    });
-    readme.appendChild(makeSection("Value", valueCards));
-  }
+  for (var propName in variants) {
+    if (!variants.hasOwnProperty(propName)) continue;
+    var values = variants[propName] || [];
+    if (!values.length) continue;
 
-  // ── Trailing section ────────────────────────────────────────────────────
-  if (variants["Trailing"]) {
-    const trailingCards = variants["Trailing"].map(function(trailing) {
-      const desc = (descriptions.trailing && descriptions.trailing[trailing]) ? descriptions.trailing[trailing] : "Component description";
-      return makeCard(cs, trailing, desc, { Trailing: trailing }, {});
+    const cards = values.map(function(v) {
+      var propBlock = variantDescriptions && variantDescriptions[propName] ? variantDescriptions[propName] : null;
+      var desc = (propBlock && propBlock[v]) ? propBlock[v] : "Component description";
+      var propMap = {};
+      propMap[propName] = v;
+      return makeCard(cs, v, desc, propMap, {});
     });
-    readme.appendChild(makeSection("Trailing", trailingCards));
+
+    readme.appendChild(makeSection(propName, cards));
   }
 
   // ── Boolean options ─────────────────────────────────────────────────────
@@ -233,7 +227,7 @@ async function buildReadme(cs, descriptions) {
     for (const key of boolKeys) {
       for (const val of [true, false]) {
         const label = key + " / " + (val ? "True" : "False");
-        const boolSection = descriptions.booleans && descriptions.booleans[key];
+        const boolSection = descriptions && descriptions.booleans && descriptions.booleans[key] ? descriptions.booleans[key] : null;
         const desc = boolSection ? (boolSection[val ? "true" : "false"] || "Component description") : "Component description";
         const override = {};
         override[booleanKeyMap[key] ? booleanKeyMap[key] : key] = val;
@@ -259,15 +253,29 @@ async function buildReadme(cs, descriptions) {
 
 // ─── message bus ────────────────────────────────────────────────────────────
 
+var CONFIG_KEY = "plugin_config";
+
 // load saved key on startup
 figma.clientStorage.getAsync("claude_api_key").then(function(key) {
   if (key) figma.ui.postMessage({ type: "SAVED_KEY", key: key });
+});
+
+// load saved config on startup
+figma.clientStorage.getAsync(CONFIG_KEY).then(function(cfg) {
+  if (cfg) figma.ui.postMessage({ type: "SAVED_CONFIG", config: cfg });
 });
 
 figma.ui.onmessage = async function(msg) {
   if (msg.type === "SAVE_KEY") {
     figma.clientStorage.setAsync("claude_api_key", msg.key).then(function() {
       figma.ui.postMessage({ type: "KEY_SAVED" });
+    });
+    return;
+  }
+
+  if (msg.type === "SAVE_CONFIG") {
+    figma.clientStorage.setAsync(CONFIG_KEY, msg.config).then(function() {
+      figma.ui.postMessage({ type: "CONFIG_SAVED" });
     });
     return;
   }

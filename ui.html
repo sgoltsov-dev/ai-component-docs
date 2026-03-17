@@ -202,12 +202,46 @@
     <button class="secondary" id="btn-read">Прочитать выбранный компонент</button>
   </div>
 
-  <div class="field-group">
+  <div class="field-group" id="claude-fields">
     <div class="section-label">Claude API Key</div>
     <div class="key-row">
       <input type="password" id="api-key" placeholder="sk-ant-..." />
       <button id="btn-save-key">Сохранить</button>
     </div>
+  </div>
+
+  <div class="field-group">
+    <div class="section-label">Провайдер генерации</div>
+    <div class="props-row" style="gap:8px">
+      <label style="display:flex;align-items:center;gap:6px">
+        <input type="radio" name="provider" value="claude" checked />
+        Claude
+      </label>
+      <label style="display:flex;align-items:center;gap:6px">
+        <input type="radio" name="provider" value="openai" />
+        OpenAI
+      </label>
+      <label style="display:flex;align-items:center;gap:6px">
+        <input type="radio" name="provider" value="openai_compatible" />
+        Custom (OpenAI-compatible)
+      </label>
+    </div>
+  </div>
+
+  <div class="field-group" id="openai-fields" style="display:none">
+    <div class="section-label">OpenAI API Key</div>
+    <input type="password" id="openai-key" placeholder="sk-..." />
+    <div class="section-label" style="margin-top:6px">OpenAI model</div>
+    <input type="text" id="openai-model" value="gpt-4.1-mini" />
+  </div>
+
+  <div class="field-group" id="custom-fields" style="display:none">
+    <div class="section-label">Custom base URL</div>
+    <input type="text" id="custom-base-url" placeholder="https://api.example.com" />
+    <div class="section-label" style="margin-top:6px">Model</div>
+    <input type="text" id="custom-model" placeholder="model-name" />
+    <div class="section-label" style="margin-top:6px">Bearer token (optional)</div>
+    <input type="password" id="custom-token" placeholder="..." />
   </div>
 
   <div class="field-group">
@@ -250,6 +284,7 @@
   // ── state ────────────────────────────────────────────────────────────────
   let componentData = null;
   let selectedLang = "ru";
+  let provider = "claude";
 
   // ── helpers ──────────────────────────────────────────────────────────────
   function showStatus(id, type, msg) {
@@ -265,6 +300,68 @@
 
   // Restore saved key
   var _savedKey = "";
+  var _savedConfig = null;
+
+  function getProvider() {
+    var checked = document.querySelector('input[name="provider"]:checked');
+    return checked ? checked.value : "claude";
+  }
+
+  function setProviderUI(p) {
+    provider = p;
+    // Toggle fields
+    document.getElementById("claude-fields").style.display = (p === "claude") ? "block" : "none";
+    document.getElementById("openai-fields").style.display = (p === "openai") ? "block" : "none";
+    document.getElementById("custom-fields").style.display = (p === "openai_compatible") ? "block" : "none";
+  }
+
+  function readConfigFromUI() {
+    var p = getProvider();
+    var cfg = { provider: p };
+    if (p === "openai") {
+      cfg.openaiKey = document.getElementById("openai-key").value.trim();
+      cfg.openaiModel = document.getElementById("openai-model").value.trim();
+    }
+    if (p === "openai_compatible") {
+      cfg.customBaseUrl = document.getElementById("custom-base-url").value.trim();
+      cfg.customModel = document.getElementById("custom-model").value.trim();
+      cfg.customToken = document.getElementById("custom-token").value.trim();
+    }
+    return cfg;
+  }
+
+  function applyConfigToUI(cfg) {
+    if (!cfg) return;
+    _savedConfig = cfg;
+    var p = cfg.provider ? cfg.provider : "claude";
+    var radio = document.querySelector('input[name="provider"][value="' + p + '"]');
+    if (radio) radio.checked = true;
+    setProviderUI(p);
+
+    if (cfg.openaiKey) document.getElementById("openai-key").value = cfg.openaiKey;
+    if (cfg.openaiModel) document.getElementById("openai-model").value = cfg.openaiModel;
+    if (cfg.customBaseUrl) document.getElementById("custom-base-url").value = cfg.customBaseUrl;
+    if (cfg.customModel) document.getElementById("custom-model").value = cfg.customModel;
+    if (cfg.customToken) document.getElementById("custom-token").value = cfg.customToken;
+  }
+
+  // Provider toggles
+  document.querySelectorAll('input[name="provider"]').forEach(function(r) {
+    r.addEventListener("change", function() {
+      setProviderUI(getProvider());
+      // Persist config whenever provider changes
+      parent.postMessage({ pluginMessage: { type: "SAVE_CONFIG", config: readConfigFromUI() } }, "*");
+    });
+  });
+
+  // Persist config when fields change
+  ["openai-key", "openai-model", "custom-base-url", "custom-model", "custom-token"].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("change", function() {
+      parent.postMessage({ pluginMessage: { type: "SAVE_CONFIG", config: readConfigFromUI() } }, "*");
+    });
+  });
 
   // ── language toggle ──────────────────────────────────────────────────────
   document.querySelectorAll(".lang-btn").forEach(function(btn) {
@@ -292,27 +389,110 @@
   // ── generate ─────────────────────────────────────────────────────────────
   document.getElementById("btn-generate").addEventListener("click", async function() {
     if (!componentData) return;
-    const apiKey = document.getElementById("api-key").value.trim();
-    if (!apiKey) { showStatus("status1", "error", "Введи Claude API Key"); return; }
+    var p = getProvider();
+    var apiKey = document.getElementById("api-key").value.trim();
+    var cfg = readConfigFromUI();
+
+    // Save config on generate
+    parent.postMessage({ pluginMessage: { type: "SAVE_CONFIG", config: cfg } }, "*");
+
+    if (p === "claude" && !apiKey) { showStatus("status1", "error", "Введи Claude API Key"); return; }
+    if (p === "openai" && !cfg.openaiKey) { showStatus("status1", "error", "Введи OpenAI API Key"); return; }
+    if (p === "openai_compatible") {
+      if (!cfg.customBaseUrl) { showStatus("status1", "error", "Укажи Custom base URL"); return; }
+      if (!cfg.customModel) { showStatus("status1", "error", "Укажи model"); return; }
+    }
 
     const btn = document.getElementById("btn-generate");
     const spinner = document.getElementById("spinner1");
     btn.disabled = true;
     spinner.classList.add("visible");
-    showStatus("status1", "info", "Генерирую описания через Claude API…");
+    showStatus("status1", "info", "Генерирую описания…");
 
     try {
-      const descriptions = await generateDescriptions(apiKey, componentData, selectedLang);
+      const descriptions = await generateDescriptions(p, apiKey, cfg, componentData, selectedLang);
       parent.postMessage({ pluginMessage: { type: "BUILD_README", descriptions } }, "*");
     } catch (e) {
       btn.disabled = false;
       spinner.classList.remove("visible");
-      showStatus("status1", "error", "Ошибка Claude API: " + e.message);
+      showStatus("status1", "error", "Ошибка генерации: " + e.message);
     }
   });
 
   // ── claude api call ───────────────────────────────────────────────────────
-  async function generateDescriptions(apiKey, data, lang) {
+  function extractTextFromClaude(json) {
+    var text = (json && json.content && json.content[0] && json.content[0].text) ? json.content[0].text : "";
+    return text;
+  }
+
+  function extractTextFromOpenAI(json) {
+    var text = "";
+    if (json && json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content) {
+      text = json.choices[0].message.content;
+    }
+    // Some OpenAI-compatible providers may return { output_text }
+    if (!text && json && json.output_text) text = json.output_text;
+    return text;
+  }
+
+  function cleanJsonText(text) {
+    return (text || "").replace(/```json/g, "").replace(/```/g, "").trim();
+  }
+
+  async function callClaudeMessages(apiKey, prompt) {
+    var resp = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true",
+      },
+      body: JSON.stringify({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 2000,
+        messages: [{ role: "user", content: prompt }],
+      }),
+    });
+
+    if (!resp.ok) {
+      var errData = {};
+      try { errData = await resp.json(); } catch(e) {}
+      var errMsg = (errData.error && errData.error.message) ? errData.error.message : ("HTTP " + resp.status);
+      throw new Error(errMsg);
+    }
+
+    var json = await resp.json();
+    return extractTextFromClaude(json);
+  }
+
+  async function callOpenAIChatCompletions(baseUrl, apiKey, model, prompt) {
+    var url = baseUrl.replace(/\/+$/, "") + "/v1/chat/completions";
+    var headers = { "Content-Type": "application/json" };
+    if (apiKey) headers["Authorization"] = "Bearer " + apiKey;
+
+    var resp = await fetch(url, {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify({
+        model: model,
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.3,
+      }),
+    });
+
+    if (!resp.ok) {
+      var errData = {};
+      try { errData = await resp.json(); } catch(e) {}
+      var errMsg = (errData.error && errData.error.message) ? errData.error.message : ("HTTP " + resp.status);
+      throw new Error(errMsg);
+    }
+
+    var json = await resp.json();
+    return extractTextFromOpenAI(json);
+  }
+
+  async function generateDescriptions(provider, claudeKey, cfg, data, lang) {
     var langNote = lang === "ru"
       ? "Write all descriptions in Russian."
       : "Write all descriptions in English.";
@@ -326,15 +506,20 @@
 
     var boolLines = data.booleans.map(function(b) { return "- " + b + ": True / False"; });
 
-    var stateEntries = data.variants["State"]
-      ? data.variants["State"].map(function(s) { return '"' + s + '": "Short description (1-2 sentences)."'; }).join(",\n    ")
+    // Build dynamic JSON template for all variant properties
+    var variantTemplateBlocks = [];
+    for (var propName in data.variants) {
+      if (!data.variants.hasOwnProperty(propName)) continue;
+      var vals = data.variants[propName] || [];
+      var entries = vals.map(function(v) {
+        return '"' + v + '": "Short description (1-2 sentences)."';
+      }).join(",\n      ");
+      variantTemplateBlocks.push('"' + propName + '": {\n      ' + entries + '\n    }');
+    }
+    var variantsTemplate = variantTemplateBlocks.length
+      ? variantTemplateBlocks.join(",\n    ")
       : "";
-    var valueEntries = data.variants["Value"]
-      ? data.variants["Value"].map(function(v) { return '"' + v + '": "Short description."'; }).join(",\n    ")
-      : "";
-    var trailingEntries = data.variants["Trailing"]
-      ? data.variants["Trailing"].map(function(t) { return '"' + t + '": "Short description."'; }).join(",\n    ")
-      : "";
+
     var boolEntries = data.booleans.map(function(b) {
       return '"' + b + '": { "true": "What is shown.", "false": "What is hidden." }';
     }).join(",\n    ");
@@ -348,41 +533,27 @@
       + "\n\nReturn ONLY valid JSON (no markdown, no extra text):\n"
       + '{\n'
       + '  "componentDescription": "One sentence.",\n'
-      + '  "states": {\n    ' + stateEntries + '\n  },\n'
-      + '  "values": {\n    ' + valueEntries + '\n  },\n'
-      + '  "trailing": {\n    ' + trailingEntries + '\n  },\n'
+      + '  "variants": {\n    ' + variantsTemplate + '\n  },\n'
       + '  "booleans": {\n    ' + boolEntries + '\n  }\n'
       + '}';
 
-    var resp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true",
-      },
-      body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 2000,
-        messages: [{ role: "user", content: userPrompt }],
-      }),
-    });
-
-    if (!resp.ok) {
-      var errData = {};
-      try { errData = await resp.json(); } catch(e) {}
-      var errMsg = (errData.error && errData.error.message) ? errData.error.message : ("HTTP " + resp.status);
-      throw new Error(errMsg);
+    var text = "";
+    if (provider === "claude") {
+      text = await callClaudeMessages(claudeKey, userPrompt);
+    } else if (provider === "openai") {
+      var model = cfg && cfg.openaiModel ? cfg.openaiModel : "gpt-4.1-mini";
+      text = await callOpenAIChatCompletions("https://api.openai.com", cfg.openaiKey, model, userPrompt);
+    } else if (provider === "openai_compatible") {
+      text = await callOpenAIChatCompletions(cfg.customBaseUrl, cfg.customToken, cfg.customModel, userPrompt);
+    } else {
+      throw new Error("Unknown provider: " + provider);
     }
 
-    var json = await resp.json();
-    var text = (json.content && json.content[0] && json.content[0].text) ? json.content[0].text : "";
-    var clean = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    var clean = cleanJsonText(text);
     try {
       return JSON.parse(clean);
     } catch(e) {
-      throw new Error("Не удалось распарсить JSON от Claude. Ответ: " + clean.slice(0, 200));
+      throw new Error("Не удалось распарсить JSON. Ответ: " + clean.slice(0, 200));
     }
   }
 
@@ -399,6 +570,16 @@
 
     if (msg.type === "KEY_SAVED") {
       showStatus("status1", "info", "Ключ сохранён");
+      return;
+    }
+
+    if (msg.type === "SAVED_CONFIG") {
+      applyConfigToUI(msg.config);
+      return;
+    }
+
+    if (msg.type === "CONFIG_SAVED") {
+      // keep quiet; config is auto-saved frequently
       return;
     }
 
