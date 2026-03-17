@@ -1,6 +1,6 @@
 // code.js — runs in Figma sandbox
 
-figma.showUI(__html__, { width: 380, height: 520, title: "Readme Generator" });
+figma.showUI(__html__, { width: 380, height: 620, title: "Readme Generator" });
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -58,6 +58,18 @@ async function loadFonts() {
   await figma.loadFontAsync({ family: "Inter", style: "Bold" });
 }
 
+// Theme node registry — reset before each build in buildReadme()
+var _themed = {
+  background: [],
+  textPrimary: [],
+  textSecondary: [],
+  divider: [],
+  titleStyle: [],
+  headingStyle: [],
+  bodyStyle: [],
+  labelStyle: []
+};
+
 function makeText(chars, size, weight, color) {
   const t = figma.createText();
   t.fontName = { family: "Inter", style: weight };
@@ -65,6 +77,26 @@ function makeText(chars, size, weight, color) {
   t.characters = chars;
   t.fills = [{ type: "SOLID", color: color ? color : { r: 0.067, g: 0.067, b: 0.067 } }];
   t.textAutoResize = "HEIGHT";
+
+  // Register nodes for theme application
+  if (size === 28 && weight === "Bold") {
+    _themed.textPrimary.push(t);
+    _themed.titleStyle.push(t);
+  } else if (size === 18 && weight === "Bold") {
+    _themed.textPrimary.push(t);
+    _themed.headingStyle.push(t);
+  } else if (size === 13 && weight === "Medium") {
+    _themed.textPrimary.push(t);
+    _themed.labelStyle.push(t);
+  } else if (size === 14 && weight === "Regular") {
+    _themed.textSecondary.push(t);
+    _themed.bodyStyle.push(t);
+  } else if (size === 12 && weight === "Regular") {
+    _themed.textSecondary.push(t);
+    _themed.bodyStyle.push(t);
+  }
+  // Notes placeholder text (13px Regular gray) intentionally excluded from theming
+
   return t;
 }
 
@@ -72,6 +104,7 @@ function makeDivider(width) {
   const r = figma.createRectangle();
   r.resize(width, 1);
   r.fills = [{ type: "SOLID", color: { r: 0.878, g: 0.878, b: 0.878 } }];
+  _themed.divider.push(r);
   return r;
 }
 
@@ -162,10 +195,89 @@ function makeSection(title, cards) {
   return section;
 }
 
+// Placeholder text field for manual-fill sections
+function makeNotesField() {
+  const t = figma.createText();
+  t.fontName = { family: "Inter", style: "Regular" };
+  t.fontSize = 13;
+  t.characters = "Add notes here...";
+  t.fills = [{ type: "SOLID", color: { r: 0.75, g: 0.75, b: 0.75 } }];
+  t.textAutoResize = "HEIGHT";
+  t.resize(760, t.height);
+  t.textAutoResize = "HEIGHT";
+  return t;
+}
+
+// Manual section = standard heading + divider + empty notes field
+function makeManualSection(title) {
+  const section = makeSection(title, []);
+  section.appendChild(makeNotesField());
+  return section;
+}
+
+// ─── theme helpers ───────────────────────────────────────────────────────────
+
+async function applyColorVariable(nodes, variableKey) {
+  if (!variableKey || !nodes.length) return;
+  try {
+    const variable = await figma.variables.importVariableByKeyAsync(variableKey);
+    for (const node of nodes) {
+      if (!node.fills || !node.fills.length) {
+        node.fills = [{ type: "SOLID", color: { r: 0, g: 0, b: 0 } }];
+      }
+      const fills = JSON.parse(JSON.stringify(node.fills));
+      fills[0] = figma.variables.setBoundVariableForPaint(fills[0], "color", variable);
+      node.fills = fills;
+    }
+  } catch (e) {
+    // silently fall back to hardcoded colors
+  }
+}
+
+async function applyTextStyle(nodes, styleKey) {
+  if (!styleKey || !nodes.length) return;
+  try {
+    const style = await figma.importStyleByKeyAsync(styleKey);
+    for (const node of nodes) {
+      node.textStyleId = style.id;
+    }
+  } catch (e) {
+    // silently fall back to manual font properties
+  }
+}
+
+async function applyTheme(readme, themeConfig) {
+  if (!themeConfig) return;
+  const colors = themeConfig.colors ? themeConfig.colors : {};
+  const textStyles = themeConfig.textStyles ? themeConfig.textStyles : {};
+
+  if (colors.background)    await applyColorVariable([readme], colors.background);
+  if (colors.textPrimary)   await applyColorVariable(_themed.textPrimary, colors.textPrimary);
+  if (colors.textSecondary) await applyColorVariable(_themed.textSecondary, colors.textSecondary);
+  if (colors.divider)       await applyColorVariable(_themed.divider, colors.divider);
+
+  if (textStyles.title)          await applyTextStyle(_themed.titleStyle, textStyles.title);
+  if (textStyles.sectionHeading) await applyTextStyle(_themed.headingStyle, textStyles.sectionHeading);
+  if (textStyles.body)           await applyTextStyle(_themed.bodyStyle, textStyles.body);
+  if (textStyles.label)          await applyTextStyle(_themed.labelStyle, textStyles.label);
+}
+
 // ─── main build ─────────────────────────────────────────────────────────────
 
-async function buildReadme(cs, descriptions) {
+async function buildReadme(cs, descriptions, manualSections, themeConfig) {
   await loadFonts();
+
+  // Reset theme node registry
+  _themed = {
+    background: [],
+    textPrimary: [],
+    textSecondary: [],
+    divider: [],
+    titleStyle: [],
+    headingStyle: [],
+    bodyStyle: [],
+    labelStyle: []
+  };
 
   const extracted = extractProperties(cs);
   const variants = extracted.variants;
@@ -181,7 +293,8 @@ async function buildReadme(cs, descriptions) {
   readme.paddingTop = 40;
   readme.paddingBottom = 60;
   readme.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
-  readme.clipsContent = false;
+  readme.cornerRadius = 32;
+  readme.clipsContent = true;
 
   // Title block
   const titleFrame = figma.createFrame();
@@ -200,8 +313,6 @@ async function buildReadme(cs, descriptions) {
   readme.appendChild(titleFrame);
 
   // ── Variant sections (dynamic) ──────────────────────────────────────────
-  // Expected schema:
-  // descriptions.variants = { [propName]: { [value]: description } }
   var variantDescriptions = (descriptions && descriptions.variants) ? descriptions.variants : {};
 
   for (var propName in variants) {
@@ -237,6 +348,13 @@ async function buildReadme(cs, descriptions) {
     readme.appendChild(makeSection("Boolean options", boolCards));
   }
 
+  // ── Manual sections ─────────────────────────────────────────────────────
+  if (manualSections && manualSections.length) {
+    for (const sectionTitle of manualSections) {
+      readme.appendChild(makeManualSection(sectionTitle));
+    }
+  }
+
   readme.primaryAxisSizingMode = "AUTO";
   readme.counterAxisSizingMode = "AUTO";
 
@@ -248,6 +366,10 @@ async function buildReadme(cs, descriptions) {
   readme.y = bbox ? bbox.y : cs.y;
 
   figma.currentPage.appendChild(readme);
+
+  // ── Apply theme (variables + text styles) ───────────────────────────────
+  await applyTheme(readme, themeConfig);
+
   figma.viewport.scrollAndZoomIntoView([readme]);
 }
 
@@ -299,11 +421,80 @@ figma.ui.onmessage = async function(msg) {
     const cs = getComponentSet();
     if (!cs) return;
     try {
-      await buildReadme(cs, msg.descriptions);
+      await buildReadme(cs, msg.descriptions, msg.manualSections, msg.themeConfig);
       figma.ui.postMessage({ type: "DONE" });
     } catch (e) {
       figma.ui.postMessage({ type: "ERROR", message: String(e) });
     }
+  }
+
+  // Returns available variable collections (local + library) and local text styles
+  if (msg.type === "GET_THEME_OPTIONS") {
+    try {
+      figma.teamLibrary.getAvailableLibraryVariableCollectionsAsync().then(function(libCollections) {
+        const localCollections = figma.variables.getLocalVariableCollections();
+        const textStyles = figma.getLocalTextStyles();
+        figma.ui.postMessage({
+          type: "THEME_OPTIONS",
+          libCollections: libCollections,
+          localCollections: localCollections.map(function(c) {
+            return { key: c.id, name: c.name, libraryName: "Local" };
+          }),
+          textStyles: textStyles.map(function(s) {
+            return { key: s.key, name: s.name };
+          })
+        });
+      }).catch(function(e) {
+        // teamlibrary not available (e.g. drafts) — return local only
+        const localCollections = figma.variables.getLocalVariableCollections();
+        const textStyles = figma.getLocalTextStyles();
+        figma.ui.postMessage({
+          type: "THEME_OPTIONS",
+          libCollections: [],
+          localCollections: localCollections.map(function(c) {
+            return { key: c.id, name: c.name, libraryName: "Local" };
+          }),
+          textStyles: textStyles.map(function(s) {
+            return { key: s.key, name: s.name };
+          })
+        });
+      });
+    } catch (e) {
+      figma.ui.postMessage({ type: "ERROR", message: String(e) });
+    }
+    return;
+  }
+
+  // Returns COLOR variables from a specific collection (library or local)
+  if (msg.type === "GET_VARIABLES_IN_COLLECTION") {
+    try {
+      figma.teamLibrary.getVariablesInLibraryCollectionAsync(msg.collectionKey).then(function(vars) {
+        figma.ui.postMessage({
+          type: "COLLECTION_VARIABLES",
+          collectionKey: msg.collectionKey,
+          variables: vars.filter(function(v) {
+            return v.resolvedType === "COLOR";
+          }).map(function(v) {
+            return { key: v.key, name: v.name };
+          })
+        });
+      }).catch(function(e) {
+        // Local collection — use getLocalVariables
+        const allVars = figma.variables.getLocalVariables("COLOR");
+        figma.ui.postMessage({
+          type: "COLLECTION_VARIABLES",
+          collectionKey: msg.collectionKey,
+          variables: allVars.filter(function(v) {
+            return v.variableCollectionId === msg.collectionKey;
+          }).map(function(v) {
+            return { key: v.key, name: v.name };
+          })
+        });
+      });
+    } catch (e) {
+      figma.ui.postMessage({ type: "ERROR", message: String(e) });
+    }
+    return;
   }
 
   if (msg.type === "CLOSE") {

@@ -5,5 +5,5 @@
   "main": "code.js",
   "ui": "ui.html",
   "editorType": ["figma"],
-  "permissions": ["currentuser", "activeusers"]
+  "permissions": ["currentuser", "activeusers", "teamlibrary"]
 }

@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:skills.sh)"
+      "WebFetch(domain:skills.sh)",
+      "WebFetch(domain:base.uber.com)",
+      "WebFetch(domain:ui.shadcn.com)",
+      "WebFetch(domain:ant.design)",
+      "WebFetch(domain:www.heroui.com)",
+      "WebFetch(domain:design.wise.com)",
+      "WebFetch(domain:atlassian.design)",
+      "WebSearch"
     ]
   }
 }

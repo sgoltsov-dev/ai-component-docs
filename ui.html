@@ -11,10 +11,11 @@
     color: #1a1a1a;
     background: #fff;
     padding: 16px;
-    min-height: 520px;
+    min-height: 620px;
     display: flex;
     flex-direction: column;
     gap: 16px;
+    overflow-y: auto;
   }
 
   h2 { font-size: 15px; font-weight: 600; }
@@ -178,6 +179,98 @@
     text-align: left;
   }
   .back-btn:hover { color: #333; }
+
+  /* ── Accordion ─────────────────────────────────────────────────────── */
+  .accordion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    margin-bottom: 0;
+  }
+  .accordion-header:hover { color: #555; }
+  .accordion-arrow { font-size: 10px; color: #aaa; }
+
+  .accordion-body {
+    display: none;
+    margin-top: 8px;
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 6px;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .accordion-body.open { display: flex; }
+
+  /* ── Manual sections ───────────────────────────────────────────────── */
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #333;
+    cursor: pointer;
+    font-weight: normal;
+  }
+  .checkbox-row input[type="checkbox"] {
+    width: auto;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+  }
+
+  /* ── Theme ─────────────────────────────────────────────────────────── */
+  .token-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .token-label {
+    font-size: 11px;
+    color: #888;
+    width: 96px;
+    flex-shrink: 0;
+  }
+  .token-select {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 4px 6px;
+    font-size: 11px;
+    font-family: inherit;
+    outline: none;
+    background: #fff;
+    color: #333;
+  }
+  .token-select:focus { border-color: #7c5cfc; }
+
+  .theme-status {
+    font-size: 11px;
+    color: #999;
+    min-height: 14px;
+  }
+
+  .btn-small {
+    background: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 4px 10px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: inherit;
+    flex: none;
+  }
+  .btn-small:hover { background: #e5e5e5; }
+
+  .token-group-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 4px;
+  }
 </style>
 </head>
 <body>
@@ -257,6 +350,86 @@
     <textarea id="extra-context" rows="3" placeholder="Например: это компонент для финтех-приложения, используется в формах ввода платёжных данных…"></textarea>
   </div>
 
+  <!-- ── Manual sections ────────────────────────────────────────────── -->
+  <div class="field-group">
+    <div class="section-label accordion-header" id="manual-header">
+      Manual sections
+      <span class="accordion-arrow" id="manual-arrow">▾</span>
+    </div>
+    <div class="accordion-body" id="manual-body">
+      <label class="checkbox-row">
+        <input type="checkbox" name="manual-section" value="Usage" checked />
+        Usage — когда/когда не использовать
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" name="manual-section" value="Mechanics" checked />
+        Mechanics — поведение, анимации, взаимодействие
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" name="manual-section" value="Edge Cases" checked />
+        Edge Cases — граничные условия и нестандартные сценарии
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" name="manual-section" value="Accessibility" checked />
+        Accessibility — ARIA, клавиатура, скринридеры
+      </label>
+    </div>
+  </div>
+
+  <!-- ── Theme ──────────────────────────────────────────────────────── -->
+  <div class="field-group">
+    <div class="section-label accordion-header" id="theme-header">
+      Theme (Variables &amp; Text Styles)
+      <span class="accordion-arrow" id="theme-arrow">▾</span>
+    </div>
+    <div class="accordion-body" id="theme-body">
+      <div style="display:flex;align-items:center;gap:8px">
+        <button class="btn-small" id="btn-load-theme">Load from file</button>
+        <span class="theme-status" id="theme-load-status"></span>
+      </div>
+
+      <div class="token-group-label">Colors</div>
+
+      <div class="token-row">
+        <span class="token-label">Background</span>
+        <select id="theme-color-background" class="token-select"><option value="">— default —</option></select>
+      </div>
+      <div class="token-row">
+        <span class="token-label">Text primary</span>
+        <select id="theme-color-textPrimary" class="token-select"><option value="">— default —</option></select>
+      </div>
+      <div class="token-row">
+        <span class="token-label">Text secondary</span>
+        <select id="theme-color-textSecondary" class="token-select"><option value="">— default —</option></select>
+      </div>
+      <div class="token-row">
+        <span class="token-label">Divider</span>
+        <select id="theme-color-divider" class="token-select"><option value="">— default —</option></select>
+      </div>
+
+      <div class="token-group-label" style="margin-top:4px">Text styles</div>
+
+      <div class="token-row">
+        <span class="token-label">Title</span>
+        <select id="theme-style-title" class="token-select"><option value="">— default —</option></select>
+      </div>
+      <div class="token-row">
+        <span class="token-label">Heading</span>
+        <select id="theme-style-sectionHeading" class="token-select"><option value="">— default —</option></select>
+      </div>
+      <div class="token-row">
+        <span class="token-label">Body</span>
+        <select id="theme-style-body" class="token-select"><option value="">— default —</option></select>
+      </div>
+      <div class="token-row">
+        <span class="token-label">Label</span>
+        <select id="theme-style-label" class="token-select"><option value="">— default —</option></select>
+      </div>
+
+      <button class="btn-small" id="btn-clear-theme" style="margin-top:2px;align-self:flex-start">Clear theme</button>
+    </div>
+  </div>
+
   <div class="status" id="status1"></div>
 
   <div class="actions">
@@ -282,13 +455,19 @@
 
 <script>
   // ── state ────────────────────────────────────────────────────────────────
-  let componentData = null;
-  let selectedLang = "ru";
-  let provider = "claude";
+  var componentData = null;
+  var selectedLang = "ru";
+  var provider = "claude";
+
+  // Theme loading state
+  var _allColorVars = [];
+  var _allTextStyles = [];
+  var _pendingCollections = 0;
+  var _collectionNames = {};
 
   // ── helpers ──────────────────────────────────────────────────────────────
   function showStatus(id, type, msg) {
-    const el = document.getElementById(id);
+    var el = document.getElementById(id);
     el.className = "status " + type;
     el.textContent = msg;
   }
@@ -298,7 +477,6 @@
     document.getElementById("step" + n).classList.add("active");
   }
 
-  // Restore saved key
   var _savedKey = "";
   var _savedConfig = null;
 
@@ -309,13 +487,12 @@
 
   function setProviderUI(p) {
     provider = p;
-    // Toggle fields
     document.getElementById("claude-fields").style.display = (p === "claude") ? "block" : "none";
     document.getElementById("openai-fields").style.display = (p === "openai") ? "block" : "none";
     document.getElementById("custom-fields").style.display = (p === "openai_compatible") ? "block" : "none";
   }
 
-  function readConfigFromUI() {
+  function readProviderConfig() {
     var p = getProvider();
     var cfg = { provider: p };
     if (p === "openai") {
@@ -328,6 +505,93 @@
       cfg.customToken = document.getElementById("custom-token").value.trim();
     }
     return cfg;
+  }
+
+  // Alias kept for internal use
+  function readConfigFromUI() {
+    return readProviderConfig();
+  }
+
+  // ── manual sections ──────────────────────────────────────────────────────
+  function getManualSections() {
+    var checked = document.querySelectorAll('input[name="manual-section"]:checked');
+    var result = [];
+    for (var i = 0; i < checked.length; i++) {
+      result.push(checked[i].value);
+    }
+    return result;
+  }
+
+  function applyManualSectionsToUI(sections) {
+    if (!sections) return;
+    var all = document.querySelectorAll('input[name="manual-section"]');
+    for (var i = 0; i < all.length; i++) {
+      all[i].checked = false;
+    }
+    for (var j = 0; j < sections.length; j++) {
+      var cb = document.querySelector('input[name="manual-section"][value="' + sections[j] + '"]');
+      if (cb) cb.checked = true;
+    }
+  }
+
+  // ── theme config ─────────────────────────────────────────────────────────
+  function getThemeConfigFromUI() {
+    var config = { colors: {}, textStyles: {} };
+    var colorTokens = ["background", "textPrimary", "textSecondary", "divider"];
+    for (var i = 0; i < colorTokens.length; i++) {
+      var token = colorTokens[i];
+      var sel = document.getElementById("theme-color-" + token);
+      if (sel && sel.value) config.colors[token] = sel.value;
+    }
+    var styleTokens = ["title", "sectionHeading", "body", "label"];
+    for (var j = 0; j < styleTokens.length; j++) {
+      var st = styleTokens[j];
+      var sel2 = document.getElementById("theme-style-" + st);
+      if (sel2 && sel2.value) config.textStyles[st] = sel2.value;
+    }
+    return config;
+  }
+
+  function applyThemeConfigToUI(themeConfig) {
+    if (!themeConfig) return;
+    var colors = themeConfig.colors ? themeConfig.colors : {};
+    var colorTokens = ["background", "textPrimary", "textSecondary", "divider"];
+    for (var i = 0; i < colorTokens.length; i++) {
+      var token = colorTokens[i];
+      if (colors[token]) {
+        var sel = document.getElementById("theme-color-" + token);
+        if (sel) sel.dataset.savedValue = colors[token];
+      }
+    }
+    var textStyles = themeConfig.textStyles ? themeConfig.textStyles : {};
+    var styleTokens = ["title", "sectionHeading", "body", "label"];
+    for (var j = 0; j < styleTokens.length; j++) {
+      var st = styleTokens[j];
+      if (textStyles[st]) {
+        var sel2 = document.getElementById("theme-style-" + st);
+        if (sel2) sel2.dataset.savedValue = textStyles[st];
+      }
+    }
+  }
+
+  function clearThemeUI() {
+    var selects = document.querySelectorAll(".token-select");
+    for (var i = 0; i < selects.length; i++) {
+      selects[i].value = "";
+      selects[i].dataset.savedValue = "";
+    }
+  }
+
+  // ── full config save/load ────────────────────────────────────────────────
+  function buildFullConfig() {
+    var cfg = readProviderConfig();
+    cfg.manualSections = getManualSections();
+    cfg.themeConfig = getThemeConfigFromUI();
+    return cfg;
+  }
+
+  function saveFullConfig() {
+    parent.postMessage({ pluginMessage: { type: "SAVE_CONFIG", config: buildFullConfig() } }, "*");
   }
 
   function applyConfigToUI(cfg) {
@@ -343,23 +607,170 @@
     if (cfg.customBaseUrl) document.getElementById("custom-base-url").value = cfg.customBaseUrl;
     if (cfg.customModel) document.getElementById("custom-model").value = cfg.customModel;
     if (cfg.customToken) document.getElementById("custom-token").value = cfg.customToken;
+
+    // Restore manual sections
+    if (cfg.manualSections) applyManualSectionsToUI(cfg.manualSections);
+
+    // Store saved theme values (applied lazily when options are loaded)
+    if (cfg.themeConfig) applyThemeConfigToUI(cfg.themeConfig);
   }
 
-  // Provider toggles
-  document.querySelectorAll('input[name="provider"]').forEach(function(r) {
-    r.addEventListener("change", function() {
-      setProviderUI(getProvider());
-      // Persist config whenever provider changes
-      parent.postMessage({ pluginMessage: { type: "SAVE_CONFIG", config: readConfigFromUI() } }, "*");
+  // ── theme options loading ────────────────────────────────────────────────
+  function populateColorSelects() {
+    var tokens = ["background", "textPrimary", "textSecondary", "divider"];
+    for (var i = 0; i < tokens.length; i++) {
+      var token = tokens[i];
+      var sel = document.getElementById("theme-color-" + token);
+      if (!sel) continue;
+      var savedValue = sel.dataset.savedValue ? sel.dataset.savedValue : "";
+      sel.innerHTML = '<option value="">— default —</option>';
+      for (var j = 0; j < _allColorVars.length; j++) {
+        var opt = document.createElement("option");
+        opt.value = _allColorVars[j].key;
+        opt.textContent = _allColorVars[j].name;
+        if (opt.value === savedValue) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+  }
+
+  function populateTextStyleSelects() {
+    var tokens = ["title", "sectionHeading", "body", "label"];
+    for (var i = 0; i < tokens.length; i++) {
+      var token = tokens[i];
+      var sel = document.getElementById("theme-style-" + token);
+      if (!sel) continue;
+      var savedValue = sel.dataset.savedValue ? sel.dataset.savedValue : "";
+      sel.innerHTML = '<option value="">— default —</option>';
+      for (var j = 0; j < _allTextStyles.length; j++) {
+        var opt = document.createElement("option");
+        opt.value = _allTextStyles[j].key;
+        opt.textContent = _allTextStyles[j].name;
+        if (opt.value === savedValue) opt.selected = true;
+        sel.appendChild(opt);
+      }
+    }
+  }
+
+  function onThemeOptions(data) {
+    _allColorVars = [];
+    _allTextStyles = data.textStyles ? data.textStyles : [];
+    _collectionNames = {};
+
+    // Populate text styles immediately
+    populateTextStyleSelects();
+
+    // Gather all collections to fetch variables from
+    var allCollections = [];
+    if (data.localCollections) {
+      for (var i = 0; i < data.localCollections.length; i++) {
+        allCollections.push(data.localCollections[i]);
+      }
+    }
+    if (data.libCollections) {
+      for (var j = 0; j < data.libCollections.length; j++) {
+        allCollections.push(data.libCollections[j]);
+      }
+    }
+
+    if (!allCollections.length) {
+      document.getElementById("theme-load-status").textContent = _allTextStyles.length + " text styles, no color variables found.";
+      populateColorSelects();
+      return;
+    }
+
+    _pendingCollections = allCollections.length;
+
+    for (var k = 0; k < allCollections.length; k++) {
+      var coll = allCollections[k];
+      var displayName = (coll.libraryName && coll.libraryName !== "Local")
+        ? coll.libraryName + " / " + coll.name
+        : coll.name;
+      _collectionNames[coll.key] = displayName;
+      parent.postMessage({ pluginMessage: { type: "GET_VARIABLES_IN_COLLECTION", collectionKey: coll.key } }, "*");
+    }
+  }
+
+  function onCollectionVariables(data) {
+    var vars = data.variables ? data.variables : [];
+    var collName = _collectionNames[data.collectionKey] ? _collectionNames[data.collectionKey] : data.collectionKey;
+
+    for (var i = 0; i < vars.length; i++) {
+      _allColorVars.push({ key: vars[i].key, name: collName + " / " + vars[i].name });
+    }
+
+    _pendingCollections--;
+    if (_pendingCollections <= 0) {
+      populateColorSelects();
+      document.getElementById("theme-load-status").textContent =
+        _allColorVars.length + " colors · " + _allTextStyles.length + " text styles";
+    }
+  }
+
+  // ── accordion toggles ────────────────────────────────────────────────────
+  document.getElementById("manual-header").addEventListener("click", function() {
+    var body = document.getElementById("manual-body");
+    var arrow = document.getElementById("manual-arrow");
+    if (body.classList.contains("open")) {
+      body.classList.remove("open");
+      arrow.textContent = "▾";
+    } else {
+      body.classList.add("open");
+      arrow.textContent = "▴";
+    }
+  });
+
+  document.getElementById("theme-header").addEventListener("click", function() {
+    var body = document.getElementById("theme-body");
+    var arrow = document.getElementById("theme-arrow");
+    if (body.classList.contains("open")) {
+      body.classList.remove("open");
+      arrow.textContent = "▾";
+    } else {
+      body.classList.add("open");
+      arrow.textContent = "▴";
+    }
+  });
+
+  // ── theme buttons ────────────────────────────────────────────────────────
+  document.getElementById("btn-load-theme").addEventListener("click", function() {
+    document.getElementById("theme-load-status").textContent = "Loading…";
+    parent.postMessage({ pluginMessage: { type: "GET_THEME_OPTIONS" } }, "*");
+  });
+
+  document.getElementById("btn-clear-theme").addEventListener("click", function() {
+    clearThemeUI();
+    saveFullConfig();
+  });
+
+  // Save theme when selects change
+  document.querySelectorAll(".token-select").forEach(function(sel) {
+    sel.addEventListener("change", function() {
+      saveFullConfig();
     });
   });
 
-  // Persist config when fields change
+  // Save manual sections when checkboxes change
+  document.querySelectorAll('input[name="manual-section"]').forEach(function(cb) {
+    cb.addEventListener("change", function() {
+      saveFullConfig();
+    });
+  });
+
+  // ── provider toggles ─────────────────────────────────────────────────────
+  document.querySelectorAll('input[name="provider"]').forEach(function(r) {
+    r.addEventListener("change", function() {
+      setProviderUI(getProvider());
+      saveFullConfig();
+    });
+  });
+
+  // Persist config when provider fields change
   ["openai-key", "openai-model", "custom-base-url", "custom-model", "custom-token"].forEach(function(id) {
     var el = document.getElementById(id);
     if (!el) return;
     el.addEventListener("change", function() {
-      parent.postMessage({ pluginMessage: { type: "SAVE_CONFIG", config: readConfigFromUI() } }, "*");
+      saveFullConfig();
     });
   });
 
@@ -374,7 +785,7 @@
 
   // ── save key ─────────────────────────────────────────────────────────────
   document.getElementById("btn-save-key").addEventListener("click", function() {
-    const key = document.getElementById("api-key").value.trim();
+    var key = document.getElementById("api-key").value.trim();
     if (key) {
       _savedKey = key;
       parent.postMessage({ pluginMessage: { type: "SAVE_KEY", key: key } }, "*");
@@ -391,10 +802,13 @@
     if (!componentData) return;
     var p = getProvider();
     var apiKey = document.getElementById("api-key").value.trim();
-    var cfg = readConfigFromUI();
+    var cfg = readProviderConfig();
+    var manualSections = getManualSections();
+    var themeConf = getThemeConfigFromUI();
 
-    // Save config on generate
-    parent.postMessage({ pluginMessage: { type: "SAVE_CONFIG", config: cfg } }, "*");
+    // Save full config on generate
+    var fullCfg = Object.assign({}, cfg, { manualSections: manualSections, themeConfig: themeConf });
+    parent.postMessage({ pluginMessage: { type: "SAVE_CONFIG", config: fullCfg } }, "*");
 
     if (p === "claude" && !apiKey) { showStatus("status1", "error", "Введи Claude API Key"); return; }
     if (p === "openai" && !cfg.openaiKey) { showStatus("status1", "error", "Введи OpenAI API Key"); return; }
@@ -403,15 +817,20 @@
       if (!cfg.customModel) { showStatus("status1", "error", "Укажи model"); return; }
     }
 
-    const btn = document.getElementById("btn-generate");
-    const spinner = document.getElementById("spinner1");
+    var btn = document.getElementById("btn-generate");
+    var spinner = document.getElementById("spinner1");
     btn.disabled = true;
     spinner.classList.add("visible");
     showStatus("status1", "info", "Генерирую описания…");
 
     try {
-      const descriptions = await generateDescriptions(p, apiKey, cfg, componentData, selectedLang);
-      parent.postMessage({ pluginMessage: { type: "BUILD_README", descriptions } }, "*");
+      var descriptions = await generateDescriptions(p, apiKey, cfg, componentData, selectedLang);
+      parent.postMessage({ pluginMessage: {
+        type: "BUILD_README",
+        descriptions: descriptions,
+        manualSections: manualSections,
+        themeConfig: themeConf
+      } }, "*");
     } catch (e) {
       btn.disabled = false;
       spinner.classList.remove("visible");
@@ -419,7 +838,7 @@
     }
   });
 
-  // ── claude api call ───────────────────────────────────────────────────────
+  // ── LLM helpers ───────────────────────────────────────────────────────────
   function extractTextFromClaude(json) {
     var text = (json && json.content && json.content[0] && json.content[0].text) ? json.content[0].text : "";
     return text;
@@ -430,7 +849,6 @@
     if (json && json.choices && json.choices[0] && json.choices[0].message && json.choices[0].message.content) {
       text = json.choices[0].message.content;
     }
-    // Some OpenAI-compatible providers may return { output_text }
     if (!text && json && json.output_text) text = json.output_text;
     return text;
   }
@@ -492,7 +910,7 @@
     return extractTextFromOpenAI(json);
   }
 
-  async function generateDescriptions(provider, claudeKey, cfg, data, lang) {
+  async function generateDescriptions(prov, claudeKey, cfg, data, lang) {
     var langNote = lang === "ru"
       ? "Write all descriptions in Russian."
       : "Write all descriptions in English.";
@@ -506,7 +924,6 @@
 
     var boolLines = data.booleans.map(function(b) { return "- " + b + ": True / False"; });
 
-    // Build dynamic JSON template for all variant properties
     var variantTemplateBlocks = [];
     for (var propName in data.variants) {
       if (!data.variants.hasOwnProperty(propName)) continue;
@@ -538,15 +955,15 @@
       + '}';
 
     var text = "";
-    if (provider === "claude") {
+    if (prov === "claude") {
       text = await callClaudeMessages(claudeKey, userPrompt);
-    } else if (provider === "openai") {
+    } else if (prov === "openai") {
       var model = cfg && cfg.openaiModel ? cfg.openaiModel : "gpt-4.1-mini";
       text = await callOpenAIChatCompletions("https://api.openai.com", cfg.openaiKey, model, userPrompt);
-    } else if (provider === "openai_compatible") {
+    } else if (prov === "openai_compatible") {
       text = await callOpenAIChatCompletions(cfg.customBaseUrl, cfg.customToken, cfg.customModel, userPrompt);
     } else {
-      throw new Error("Unknown provider: " + provider);
+      throw new Error("Unknown provider: " + prov);
     }
 
     var clean = cleanJsonText(text);
@@ -559,7 +976,7 @@
 
   // ── messages from plugin ──────────────────────────────────────────────────
   window.onmessage = function(event) {
-    const msg = event.data.pluginMessage;
+    var msg = event.data.pluginMessage;
     if (!msg) return;
 
     if (msg.type === "SAVED_KEY") {
@@ -579,7 +996,6 @@
     }
 
     if (msg.type === "CONFIG_SAVED") {
-      // keep quiet; config is auto-saved frequently
       return;
     }
 
@@ -587,22 +1003,23 @@
       componentData = msg;
       document.getElementById("comp-name").textContent = msg.name;
 
-      const varEl = document.getElementById("comp-variants");
+      var varEl = document.getElementById("comp-variants");
       varEl.innerHTML = "";
-      for (const [key, vals] of Object.entries(msg.variants)) {
-        const pill = document.createElement("span");
+      for (var key in msg.variants) {
+        if (!msg.variants.hasOwnProperty(key)) continue;
+        var pill = document.createElement("span");
         pill.className = "pill";
-        pill.textContent = key + ": " + vals.join(", ");
+        pill.textContent = key + ": " + msg.variants[key].join(", ");
         varEl.appendChild(pill);
       }
 
-      const boolEl = document.getElementById("comp-bools");
+      var boolEl = document.getElementById("comp-bools");
       boolEl.innerHTML = "";
-      for (const b of msg.booleans) {
-        const pill = document.createElement("span");
-        pill.className = "pill bool";
-        pill.textContent = b;
-        boolEl.appendChild(pill);
+      for (var b = 0; b < msg.booleans.length; b++) {
+        var bpill = document.createElement("span");
+        bpill.className = "pill bool";
+        bpill.textContent = msg.booleans[b];
+        boolEl.appendChild(bpill);
       }
 
       document.getElementById("comp-card").classList.add("visible");
@@ -610,13 +1027,23 @@
       showStatus("status1", "info", "Компонент прочитан: " + msg.name);
     }
 
+    if (msg.type === "THEME_OPTIONS") {
+      onThemeOptions(msg);
+      return;
+    }
+
+    if (msg.type === "COLLECTION_VARIABLES") {
+      onCollectionVariables(msg);
+      return;
+    }
+
     if (msg.type === "DONE") {
       setStep(2);
     }
 
     if (msg.type === "ERROR") {
-      const spinner = document.getElementById("spinner1");
-      const btn = document.getElementById("btn-generate");
+      var spinner = document.getElementById("spinner1");
+      var btn = document.getElementById("btn-generate");
       spinner.classList.remove("visible");
       btn.disabled = false;
       showStatus("status1", "error", msg.message);
