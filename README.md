@@ -1,4 +1,4 @@
-# Component Readme Generator — Figma Plugin
+# AI Component Docs — Figma Plugin
 
 Automatically builds a readme frame for your components. Reads variants and boolean properties, sends them to an AI model, and places a styled frame with descriptions and live instances right next to your component.
 

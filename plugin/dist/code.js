@@ -1,6 +1,6 @@
 // code.js — runs in Figma sandbox
 
-figma.showUI(__html__, { width: 380, height: 620, title: "Readme Generator" });
+figma.showUI(__html__, { width: 380, height: 620, title: "AI Component Docs", themeColors: true });
 
 function handleSelectionChange() {
   const cs = getComponentSet();
