@@ -16,7 +16,7 @@
    git clone https://github.com/sgoltsov-dev/figma-readme-plugin.git
    ```
 2. Открыть **Figma Desktop**
-3. **Plugins → Development → Import plugin from manifest...** → выбрать `manifest.json` из папки
+3. **Plugins → Development → Import plugin from manifest...** → выбрать `plugin/manifest.json` из папки
 4. Запустить: **Plugins → Development → Component Readme Generator**
 
 > Для обновления — `git pull` в папке, затем перезапустить плагин в Figma.
@@ -24,7 +24,7 @@
 ## Установка локально (без git)
 
 1. В Figma: **Plugins → Development → Import plugin from manifest...**
-2. Выбери файл `manifest.json` из этой папки
+2. Выбери файл `plugin/manifest.json` из скачанной папки
 3. Плагин появится в **Plugins → Development → Component Readme Generator**
 
 ## Использование
@@ -47,9 +47,9 @@
 
 ## Файлы
 
-- `manifest.json` — конфиг плагина
-- `code.js` — основная логика (работает в Figma sandbox)
-- `ui.html` — интерфейс плагина (iframe)
+- `plugin/manifest.json` — конфиг плагина
+- `plugin/dist/code.js` — основная логика (работает в Figma sandbox)
+- `plugin/dist/ui.html` — интерфейс плагина (iframe)
 
 ## Требования
 
@@ -59,7 +59,7 @@
 
 ## Кастомизация промпта
 
-В `ui.html` найди функцию `generateDescriptions()` — там `userPrompt`.  
+В `plugin/dist/ui.html` найди функцию `generateDescriptions()` — там `userPrompt`.  
 Можно добавить свои инструкции: тональность, длину описаний, формат.
 
 ## Поддерживаемые свойства

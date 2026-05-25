@@ -2,6 +2,23 @@
 
 figma.showUI(__html__, { width: 380, height: 620, title: "Readme Generator" });
 
+function handleSelectionChange() {
+  const cs = getComponentSet();
+  if (!cs) {
+    figma.ui.postMessage({ type: "SELECTION_CLEARED" });
+    return;
+  }
+  const { variants, booleans } = extractProperties(cs);
+  figma.ui.postMessage({
+    type: "COMPONENT_DATA",
+    name: cs.name,
+    variants,
+    booleans: Object.keys(booleans),
+  });
+}
+
+figma.on("selectionchange", handleSelectionChange);
+
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 function getComponentSet() {
@@ -142,6 +159,7 @@ function makeCard(cs, label, description, propMap, targetBoolKey) {
   // Component instance
   const variant = findVariant(cs, propMap);
   const inst = variant.createInstance();
+  inst.layoutAlign = "STRETCH";
   frame.appendChild(inst);
 
   // Defer boolean visibility fix — applied after readme is in the document
@@ -585,6 +603,11 @@ figma.clientStorage.getAsync(CONFIG_KEY).then(function(cfg) {
 });
 
 figma.ui.onmessage = async function(msg) {
+  if (msg.type === "UI_READY") {
+    handleSelectionChange();
+    return;
+  }
+
   if (msg.type === "SAVE_KEY") {
     figma.clientStorage.setAsync("claude_api_key", msg.key).then(function() {
       figma.ui.postMessage({ type: "KEY_SAVED" });
@@ -597,21 +620,6 @@ figma.ui.onmessage = async function(msg) {
       figma.ui.postMessage({ type: "CONFIG_SAVED" });
     });
     return;
-  }
-
-  if (msg.type === "GET_COMPONENT") {
-    const cs = getComponentSet();
-    if (!cs) {
-      figma.ui.postMessage({ type: "ERROR", message: "Выбери ComponentSet (или любой его вариант) на канвасе" });
-      return;
-    }
-    const { variants, booleans } = extractProperties(cs);
-    figma.ui.postMessage({
-      type: "COMPONENT_DATA",
-      name: cs.name,
-      variants,
-      booleans: Object.keys(booleans),
-    });
   }
 
   if (msg.type === "BUILD_README") {

@@ -1,3 +1,22 @@
-# Claude Code AI tooling — локальные, не нужны в репо
+# Claude AI tooling
 .claude/
 CLAUDE.md
+plans/
+.mcp.json
+
+# System
+.DS_Store
+
+# Plugin — source and deps (only dist/ is tracked)
+plugin/src/
+plugin/node_modules/
+plugin/package.json
+plugin/package-lock.json
+plugin/tsconfig.json
+plugin/vite.config.ts
+plugin/ui.html
+
+# Old root-level build artifacts (replaced by plugin/dist/)
+/code.js
+/manifest.json
+/ui.html

@@ -2,8 +2,8 @@
   "name": "Component Readme Generator",
   "id": "component-readme-generator",
   "api": "1.0.0",
-  "main": "code.js",
-  "ui": "ui.html",
+  "main": "dist/code.js",
+  "ui": "dist/ui.html",
   "editorType": ["figma"],
   "permissions": ["currentuser", "activeusers", "teamlibrary"]
 }
